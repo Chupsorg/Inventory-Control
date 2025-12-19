@@ -1,0 +1,337 @@
+@use "./variables" as *;
+@use "./colors" as *;
+@import '~bootstrap/scss/bootstrap';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-montserrat), Arial, Helvetica, sans-serif;
+}
+
+
+// --------------------------------------------------------------Fonts-----------------------------------------------------
+.font-8{
+  font-size: $px-8 !important;
+}
+.font-9{
+  font-size: $px-9 !important;
+}
+.font-10{
+  font-size: $px-10 !important;
+}
+.font-11{
+  font-size: $px-11 !important;
+}
+.font-12{
+  font-size: $px-12 !important;
+}
+.font-13{
+  font-size: $px-13 !important;
+}
+.font-14{
+  font-size: $px-14 !important;
+}
+.font-15{
+  font-size: $px-15 !important;
+}
+.font-16{
+  font-size: $px-16 !important;
+}
+.font-17{
+  font-size: $px-17 !important;
+}
+.font-18{
+  font-size: $px-18 !important;
+}
+.font-19{
+  font-size: $px-19 !important;
+}
+.font-20{
+  font-size: $px-20 !important;
+}
+.font-21{
+  font-size: $px-21 !important;
+}
+.font-22{
+  font-size: $px-22 !important;
+}
+.font-23{
+  font-size: $px-23 !important;
+}
+.font-24{
+  font-size: $px-24 !important;
+}
+.font-25{
+  font-size: $px-25 !important;
+}
+.font-26{
+  font-size: $px-26 !important;
+}
+.font-27{
+  font-size: $px-27 !important;
+}
+.font-28{
+  font-size: $px-28 !important;
+}
+.font-30{
+  font-size: $px-30 !important;
+}
+
+
+// --------------------------------------------------------------Text colors-----------------------------------------------
+.text-primary{
+  color: $primary-color !important;
+}
+.text-secondary{
+  color: $secondary-color !important;
+}
+.text-gray{
+  color: $gray-color !important;
+}
+
+
+// --------------------------------------------------------------Background colors-----------------------------------------------------
+.bg-primary{
+  background-color: $primary-color !important;
+}
+.bg-primary-light{
+  background-color: $primary-color-light !important;
+}
+.bg-secondary{
+  background-color: $secondary-color !important;
+}
+.bg-gray{
+  background-color: $gray-color !important;
+}
+.bg-gray-border{
+  background-color: $border-color !important;
+}
+.bg-gray-light{
+  background-color: $gray-color-light !important;
+}
+.bg-white{
+  background-color: $white-color !important;
+}
+.primary-border{
+  border: 1px solid $primary-color;
+}
+
+
+// --------------------------------------------------------------custom checkbox-----------------------------------------------------
+.rb-orange-check .form-check-input {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid $border-color;
+  background-color: #fff;
+  background-image: none;
+  margin: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.rb-orange-check .form-check-input:checked {
+  background-color: #f37728;
+  border-color: #f37728;
+}
+
+.rb-orange-check .form-check-input:checked::before {
+  content: "";
+  width: 10px;
+  height: 5px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg);
+  position: absolute;
+  top: 4px;
+  left: 3px;
+}
+
+.rb-orange-check .form-check-input:focus,
+.rb-orange-check .form-check-input:active {
+  box-shadow: none;
+  background-image: none;
+}
+
+
+// --------------------------------------------------------------custom select-----------------------------------------------------
+.rb-custom-select {
+  width: 143px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 8px 14px 8px 14px;
+  font-size: 14px;
+  color: #333;
+  background-color: #fff;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6Z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+
+  box-shadow: none;
+}
+
+.rb-custom-select:focus {
+  border-color: #ccc;
+  box-shadow: none;
+}
+
+
+// --------------------------------------------------------------Custom calendar-----------------------------------------------------
+.custom-date-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  width: 240px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0 12px;
+  background-color: #fff;
+  cursor: pointer;
+
+  input {
+    border: none;
+    outline: none;
+    font-size: 14px;
+    color: #333;
+    width: 100%;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  img {
+    width: 18px;
+    height: 18px;
+    margin-left: 8px;
+  }
+}
+.rmdp-week-day {
+  color: $primary-color !important;
+}
+.rmdp-arrow{
+  border: solid $primary-color !important;
+  border-width: 0px 2px 2px 0px !important;
+}
+.rmdp-range{
+  background-color: $primary-color-light !important;
+  color: $black-color !important;
+  box-shadow: none !important;
+}
+.rmdp-day.rmdp-today span{
+  background-color: $primary-color-light !important;
+  color: $black-color !important;
+}
+.rmdp-day span:hover{
+  background-color: $primary-color-light !important;
+  color: $black-color !important;
+}
+
+
+// --------------------------------------------------------------Buttons-----------------------------------------------------
+.btn-filled {
+  padding: 8px 21px;
+  border: 1.5px solid #F37728 !important;
+  background-color: #F37728 !important;
+  color: #fff !important;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  box-shadow: none !important;
+}
+
+.btn-outline {
+  padding: 8px 21px;
+  border: 1.5px solid $border-color !important;
+  background-color: #fff !important;
+  color: $black-color !important;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  box-shadow: none !important;
+}
+
+.btn:hover,
+.btn:active,
+.btn.active,
+.btn:focus,
+.btn:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+
+// --------------------------------------------------------------Login page-----------------------------------------------------
+.login-page {
+  min-height: 100vh;
+  background-color: #f2f2f2;
+  position: relative;
+
+  .login-logo {
+    position: absolute;
+    top: 20px;
+    left: 30px;
+  }
+
+  .login-card {
+    border-radius: 8px;
+    box-shadow: 0 0px 34px #00000029;
+    padding: 20px;
+    border: none !important;
+  }
+
+  .login-divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+  }
+
+  .login-divider::before,
+  .login-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #ddd;
+  }
+
+  .login-divider span {
+    margin: 0 12px;
+  }
+
+  .password-eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
