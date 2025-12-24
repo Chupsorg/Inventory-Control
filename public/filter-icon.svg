@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="18" height="18" viewBox="0 0 18 18">
+  <defs>
+    <clipPath id="clip-path">
+      <rect id="Rectangle_3146" data-name="Rectangle 3146" width="18" height="18" fill="#da3753"/>
+    </clipPath>
+  </defs>
+  <g id="Mask_Group_3969" data-name="Mask Group 3969" clip-path="url(#clip-path)">
+    <path id="filter-list-svgrepo-com" d="M18.9,5.4H17.1m1.8,5.4H14.4m4.5,5.4H14.4M6.3,18V12.205a1.905,1.905,0,0,0-.018-.37.9.9,0,0,0-.08-.229,1.91,1.91,0,0,0-.217-.3L3.016,7.594a1.905,1.905,0,0,1-.217-.3.9.9,0,0,1-.08-.229,1.905,1.905,0,0,1-.018-.37V5.04a2.236,2.236,0,0,1,.1-.949A.9.9,0,0,1,3.191,3.7a2.236,2.236,0,0,1,.949-.1h7.92a2.236,2.236,0,0,1,.949.1.9.9,0,0,1,.393.393,2.236,2.236,0,0,1,.1.949V6.695a1.907,1.907,0,0,1-.018.37.9.9,0,0,1-.08.229,1.907,1.907,0,0,1-.217.3l-2.969,3.711a1.912,1.912,0,0,0-.217.3.9.9,0,0,0-.08.229,1.907,1.907,0,0,0-.018.37V15.3Z" transform="translate(-1.8 -1.8)" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
+  </g>
+</svg>

@@ -121,10 +121,19 @@ body {
 .bg-white{
   background-color: $white-color !important;
 }
-.primary-border{
-  border: 1px solid $primary-color;
-}
 
+
+// --------------------------------------------------------------custom checkbox-----------------------------------------------------
+
+.primary-border{
+  border: 1px solid $primary-color !important;
+}
+.green-border{
+  border: 1px solid $green-color !important;
+}
+.red-border{
+  border: 1px solid $secondary-color !important;
+}
 
 // --------------------------------------------------------------custom checkbox-----------------------------------------------------
 .rb-orange-check .form-check-input {
@@ -257,7 +266,7 @@ body {
   padding: 8px 21px;
   border: 1.5px solid $border-color !important;
   background-color: #fff !important;
-  color: $black-color !important;
+  color: $black-color;
   font-size: 14px;
   font-weight: 500;
   border-radius: 6px;
@@ -320,8 +329,141 @@ body {
   }
 }
 
+// --------------------------------------------------------------Datatable core css-----------------------------------------------------
+
+.rdt_TableRow {
+  border-bottom: none !important;
+}
+
+.rdt_TableHeadRow {
+  border-bottom: none !important;
+}
+
+.rdt_TableCell {
+  border-bottom: none !important;
+}
+.rdt_TableHead .rdt_TableCol {
+  white-space: normal !important;
+}
+.rdt_TableHead .rdt_TableCol div {
+  white-space: normal !important;
+  overflow-wrap: break-word;
+}
+
+/* Chrome, Safari, Edge */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
 
 
+// --------------------------------------------------------------filter primary-----------------------------------------------------
+.filter-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.6fr;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #ddd;
+}
+
+.segment:last-child {
+  border-right: none;
+}
+
+/* remove default input styles */
+.segment-select,
+.segment-input {
+  border: none !important;
+  box-shadow: none !important;
+  text-align: center;
+  padding: 6px;
+  width: 100%;
+}
+
+/* % styling */
+.segment.percent {
+  font-weight: 600;
+}
+
+
+
+// --------------------------------------------------------------Radio button-----------------------------------------------------
+/* radio spacing consistency */
+.form-check-input {
+  margin-top: 0.2rem;
+}
+/* base radio */
+.form-check-input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d9d9d9;
+  background-color: #fff;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+/* checked radio */
+.form-check-input[type="radio"]:checked {
+  border-color: #F37728;
+  background-color: #fff;
+  background-image: radial-gradient(
+    circle,
+    #F37728 45%,
+    transparent 46%
+    );
+  }
+  
+  /* remove focus glow */
+  .form-check-input[type="radio"]:focus {
+    box-shadow: none;
+    outline: none;
+  }
+  
+  
+  .more-toggle::after {
+    display: none !important;
+  }
+  
+  
+  
+  // --------------------------------------------------------------Radio button-----------------------------------------------------
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -260px;
+  width: 260px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: left 0.3s ease;
+  z-index: 1050;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+/* Backdrop */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1040;
+}
 
 
 

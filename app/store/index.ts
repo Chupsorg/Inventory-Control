@@ -11,12 +11,15 @@ import {
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 
-import counterReducer from "./features/counterSlice";
 import { apiSlice } from "./services/apiSlice";
-
+import authReducer from "./features/authSlice";
+import configReducer from "./features/configSlice"
+import primaryItemsReducer from "./features/primaryItemsSlice"
 // Combine reducers
 const rootReducer = combineReducers({
-  counter: counterReducer,
+  auth: authReducer,
+  config: configReducer,
+  primaryItems: primaryItemsReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
 });
 
@@ -24,7 +27,7 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["counter"], // 👈 only persist what you need
+  whitelist: ["auth","config","primaryItems"], // 👈 only persist what you need
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

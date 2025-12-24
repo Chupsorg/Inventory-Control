@@ -1,27 +1,24 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { backendURL } from "@/app/utils/properties";
+import { baseQueryWithAuth } from "./baseQueryWithAuth";
 
-export interface Post {
-  id: number;
-  title: string;
-  body: string;
+interface ApiArgs {
+  url: string;
+  body?: any;
 }
 
 export const apiSlice = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: "https://jsonplaceholder.typicode.com",
-  }),
+  baseQuery: baseQueryWithAuth,
   endpoints: (builder) => ({
-    getPosts: builder.query<Post[], void>({
-      query: () => "/posts",
-    }),
-    getPostById: builder.query<Post, number>({
-      query: (id) => `/posts/${id}`,
+    callApi: builder.mutation<any, ApiArgs>({
+      query: ({ url, body }) => ({
+        url,
+        method:"POST",
+        body,
+      }),
     }),
   }),
 });
 
-export const {
-  useGetPostsQuery,
-  useGetPostByIdQuery,
-} = apiSlice;
+export const { useCallApiMutation } = apiSlice;
