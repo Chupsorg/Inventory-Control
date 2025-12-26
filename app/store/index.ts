@@ -12,6 +12,7 @@ import {
 import storage from "redux-persist/lib/storage";
 
 import { apiSlice } from "./services/apiSlice";
+import orderReducer from './features/orderSlice';
 import authReducer from "./features/authSlice";
 import configReducer from "./features/configSlice"
 import primaryItemsReducer from "./features/primaryItemsSlice"
@@ -20,6 +21,7 @@ const rootReducer = combineReducers({
   auth: authReducer,
   config: configReducer,
   primaryItems: primaryItemsReducer,
+  order: orderReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
 });
 

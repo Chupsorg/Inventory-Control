@@ -17,6 +17,20 @@ body {
   font-family: var(--font-montserrat), Arial, Helvetica, sans-serif;
 }
 
+/* Forces the button to keep its original text color on hover */
+.btn-outline:hover {
+  color: inherit !important;
+  background-color: transparent !important;
+  /* Optional: prevents the background fill */
+  border-color: inherit;
+  /* Optional: keeps the border consistent */
+}
+
+/* Ensures the focus/active states also don't flip to white */
+.btn-outline:focus,
+.btn-outline:active {
+  color: inherit !important;
+}
 
 // --------------------------------------------------------------Fonts-----------------------------------------------------
 .font-8{
@@ -96,6 +110,9 @@ body {
 }
 .text-gray{
   color: $gray-color !important;
+}
+.text-green{
+  color: $green-color !important;
 }
 
 

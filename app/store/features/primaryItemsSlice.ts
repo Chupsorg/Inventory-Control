@@ -4,11 +4,11 @@ interface PrimaryItem {
   id: number;
   itemQty: number;
   checked?: boolean;
-  [key: string]: any;
+  [key: string]: string | number | boolean | undefined;
 }
 
 interface PrimaryGroup {
-  config: any;
+  config: Record<string, unknown>;
   items: PrimaryItem[];
 }
 
@@ -80,10 +80,10 @@ const primaryItemsSlice = createSlice({
 
           if (!isMatch) return;
 
-          const base = item.rcomQty ?? item.itemQty;
+          const base = (item.rcomQty ?? item.itemQty) as number;
           const delta = (base * percentage) / 100;
 
-          let newQty =
+          const newQty =
             operator === "+" ? base + delta : base - delta;
 
           item.rcomQty = Math.max(0, Math.round(newQty));
@@ -96,6 +96,37 @@ const primaryItemsSlice = createSlice({
       state.list = [];
       state.isFetched = false;
     },
+    
+    selectSpecificItems: (state, action) => {
+      const { groupIndex, itemIds, checked } = action.payload;
+      const group = state.list[groupIndex];
+      if (group) {
+        group.items.forEach((item) => {
+          if (itemIds.includes(item.id)) {
+            item.checked = checked;
+          }
+        });
+      }
+    },
+
+    applyMathToSelected: (state, action) => {
+      const { groupIndex, operator, percentage } = action.payload;
+      const group = state.list[groupIndex];
+      if (group) {
+        group.items.forEach((item) => {
+          if (item.checked) {
+            const factor = percentage / 100;
+            let newQty = item.rcomQty;
+            if (operator === "+") {
+              newQty = Math.round(item.rcomQty * (1 + factor));
+            } else {
+              newQty = Math.round(item.rcomQty * (1 - factor));
+            }
+            item.rcomQty = newQty > 0 ? newQty : 0;
+          }
+        });
+      }
+    },
   },
 });
 
@@ -106,6 +137,8 @@ export const {
   updateItemQty,
   bulkUpdateRcomQty,
   clearPrimaryItems,
+  selectSpecificItems,
+  applyMathToSelected,
 } = primaryItemsSlice.actions;
 
 export default primaryItemsSlice.reducer;

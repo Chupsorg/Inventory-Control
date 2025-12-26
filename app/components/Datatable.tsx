@@ -4,6 +4,8 @@ type DatatableProps<T> = {
   columns: TableColumn<T>[];
   rowData: T[];
   customStyles?: any;
+  progressPending?: boolean;
+  pagination?: boolean;
 };
 const defaultCustomStyles = {
   rows: {
@@ -34,6 +36,8 @@ export default function Datatable<T>({
   columns,
   rowData,
   customStyles,
+  progressPending,
+  pagination
 }: DatatableProps<T>) {
   return (
     <DataTable
@@ -42,6 +46,8 @@ export default function Datatable<T>({
       customStyles={customStyles ?? defaultCustomStyles}
       striped
       noDataComponent={<div className="mx-auto w-50">No data found</div>}
+      progressPending={progressPending}
+      pagination={pagination}
     />
   );
 }

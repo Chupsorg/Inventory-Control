@@ -4,6 +4,10 @@ export interface LoginDetails {
   userId: string;
   cloudKitchenName: string;
   cloudKitchenId: number;
+  userName: string;
+  token: string;
+  kitchenLocationId: number;
+  entityType: string;
 }
 
 interface AuthState {

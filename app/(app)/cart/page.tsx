@@ -1,14 +1,23 @@
-"use client"
-import React, { useEffect, useState } from 'react'
+"use client";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/app/store";
-import { useCallApiMutation } from '@/app/store/services/apiSlice';
-import { useRouter } from 'next/navigation';
-import { Container, Row, Col, Button, Form, Dropdown, Modal } from 'react-bootstrap';
-import Image from 'next/image';
-import { TableColumn } from 'react-data-table-component';
-import Datatable from '@/app/components/Datatable';
-import { getDayName, formatDate } from '@/app/utils/properties';
+import { useCallApiMutation } from "@/app/store/services/apiSlice";
+import { useRouter } from "next/navigation";
+import {
+  Container,
+  Row,
+  Col,
+  Button,
+  Form,
+  Dropdown,
+  Modal,
+} from "react-bootstrap";
+import Image from "next/image";
+import { TableColumn } from "react-data-table-component";
+import Datatable from "@/app/components/Datatable";
+import { getDayName, formatDate } from "@/app/utils/properties";
+import moment from "moment";
 
 type OrderRow = {
   id: number;
@@ -18,8 +27,8 @@ type OrderRow = {
   reqQty: number;
   storageType: string;
   uom: string;
-  groupIndex: number,
-  checked: boolean
+  groupIndex: number;
+  checked: boolean;
 };
 
 export default function page() {
@@ -53,104 +62,48 @@ export default function page() {
 
     return [
       {
-        name: <Form.Check
-          type="checkbox"
-          className="rb-orange-check"
-          checked={!!allChecked}
-          onChange={(e) => {
-            const checked = e.target.checked;
-            setcartItem(prev =>
-              prev.map((grp, i) =>
-                i === groupIndex
-                  ? {
-                    ...grp,
-                    items: grp.items.map((itm: any) => ({
-                      ...itm,
-                      checked,
-                    })),
-                  }
-                  : grp
-              )
-            );
-          }}
-        />,
-        width: '60px',
-        sortable: true,
-        cell: row => (
+        name: (
           <Form.Check
             type="checkbox"
             className="rb-orange-check"
-            checked={row.checked}
-            onChange={() => {
-              setcartItem(prev =>
+            checked={!!allChecked}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setcartItem((prev) =>
                 prev.map((grp, i) =>
                   i === groupIndex
                     ? {
-                      ...grp,
-                      items: grp.items.map((itm: any) =>
-                        itm.id === row.id
-                          ? { ...itm, checked: !itm.checked }
-                          : itm
-                      ),
-                    }
+                        ...grp,
+                        items: grp.items.map((itm: any) => ({
+                          ...itm,
+                          checked,
+                        })),
+                      }
                     : grp
                 )
               );
             }}
           />
-        )
-      },
-      {
-        name: '#',
-        selector: row => row.id,
-        width: '60px',
+        ),
+        width: "60px",
         sortable: true,
-      },
-      {
-        name: 'Item',
-        selector: row => row.itemName,
-        sortable: true,
-      },
-      {
-        name: 'Fridge/Freezer',
-        selector: row => row.storageType,
-        sortable: true,
-        center: true
-      },
-      {
-        name: 'Available Qty',
-        selector: row => row.availableQty,
-        sortable: true,
-        center: true
-      },
-      {
-        name: 'Recommended Qty',
-        selector: row => row.recommendedQty,
-        sortable: true,
-        center: true
-      },
-      {
-        name: 'Required Qty',
-        selector: row => row.reqQty,
-        sortable: true,
-        cell: row => (
-          <Form.Control
-            type="number"
-            className='text-center'
-            value={row.reqQty}
-            onChange={(e) => {
-              const qty = Math.max(0, Number(e.target.value));
-              setcartItem(prev =>
+        cell: (row) => (
+          <Form.Check
+            type="checkbox"
+            className="rb-orange-check"
+            checked={row.checked}
+            onChange={() => {
+              setcartItem((prev) =>
                 prev.map((grp, i) =>
                   i === groupIndex
                     ? {
-                      ...grp,
-                      items: grp.items.map((itm: any) =>
-                        itm.id === row.id
-                          ? { ...itm, reqQty: qty }
-                          : itm
-                      ),
-                    }
+                        ...grp,
+                        items: grp.items.map((itm: any) =>
+                          itm.id === row.id
+                            ? { ...itm, checked: !itm.checked }
+                            : itm
+                        ),
+                      }
                     : grp
                 )
               );
@@ -159,67 +112,142 @@ export default function page() {
         ),
       },
       {
-        name: 'UOM',
-        width: '100px',
-        selector: row => row.uom,
-        cell: row => row.uom,
-        center: true
+        name: "#",
+        selector: (row) => row.id,
+        width: "60px",
+        sortable: true,
       },
       {
-        name: 'More',
-        width: '100px',
-        cell: row => <div>
-          <Dropdown align="end">
-            <Dropdown.Toggle
-              variant="link"
-              className="p-0 border-0 more-toggle"
-            >
-              <Image src={"more-icon.svg"} height={24} width={24} alt='more-icon' />
-            </Dropdown.Toggle>
+        name: "Item",
+        selector: (row) => row.itemName,
+        sortable: true,
+      },
+      {
+        name: "Fridge/Freezer",
+        selector: (row) => row.storageType,
+        sortable: true,
+        center: true,
+      },
+      {
+        name: "Available Qty",
+        selector: (row) => row.availableQty,
+        sortable: true,
+        center: true,
+      },
+      {
+        name: "Recommended Qty",
+        selector: (row) => row.recommendedQty,
+        sortable: true,
+        center: true,
+      },
+      {
+        name: "Required Qty",
+        selector: (row) => row.reqQty,
+        sortable: true,
+        cell: (row) => (
+          <Form.Control
+            type="number"
+            className="text-center"
+            value={row.reqQty}
+            onChange={(e) => {
+              const qty = Math.max(0, Number(e.target.value));
+              setcartItem((prev) =>
+                prev.map((grp, i) =>
+                  i === groupIndex
+                    ? {
+                        ...grp,
+                        items: grp.items.map((itm: any) =>
+                          itm.id === row.id ? { ...itm, reqQty: qty } : itm
+                        ),
+                      }
+                    : grp
+                )
+              );
+            }}
+          />
+        ),
+      },
+      {
+        name: "UOM",
+        width: "100px",
+        selector: (row) => row.uom,
+        cell: (row) => row.uom,
+        center: true,
+      },
+      {
+        name: "More",
+        width: "100px",
+        cell: (row) => (
+          <div>
+            <Dropdown align="end">
+              <Dropdown.Toggle
+                variant="link"
+                className="p-0 border-0 more-toggle"
+              >
+                <Image
+                  src={"more-icon.svg"}
+                  height={24}
+                  width={24}
+                  alt="more-icon"
+                />
+              </Dropdown.Toggle>
 
-            <Dropdown.Menu className="more-menu" renderOnMount popperConfig={{ strategy: 'fixed' }}>
-              {/* <Dropdown.Item> Edit </Dropdown.Item>
+              <Dropdown.Menu
+                className="more-menu"
+                renderOnMount
+                popperConfig={{ strategy: "fixed" }}
+              >
+                {/* <Dropdown.Item> Edit </Dropdown.Item>
               <Dropdown.Divider />
               <Dropdown.Item> Split </Dropdown.Item>
               <Dropdown.Divider /> */}
-              {cartItem.map((grp, targetIndex) => {
-                if (targetIndex === groupIndex) return null;
+                {cartItem.map((grp, targetIndex) => {
+                  if (targetIndex === groupIndex) return null;
 
-                return (
-                  <Dropdown.Item
-                    key={targetIndex}
-                    onClick={() =>
-                      handleMoveItem(groupIndex, targetIndex, row)
-                    }
-                  >
-                    Move to {getDayName(new Date(grp.config.date))} delivery
-                  </Dropdown.Item>
-                );
-              })}
+                  return (
+                    <Dropdown.Item
+                      key={targetIndex}
+                      onClick={() =>
+                        handleMoveItem(groupIndex, targetIndex, row)
+                      }
+                    >
+                      Move to {getDayName(new Date(grp.config.date))} delivery
+                    </Dropdown.Item>
+                  );
+                })}
 
-              <Dropdown.Divider />
-              <Dropdown.Item className="text-danger" onClick={() => handleRowDelete(groupIndex, row.id)}>
-                Delete
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-        </div>,
-        center: true
-      }
-    ]
+                <Dropdown.Divider />
+                <Dropdown.Item
+                  className="text-danger"
+                  onClick={() => handleRowDelete(groupIndex, row.id)}
+                >
+                  Delete
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
+        ),
+        center: true,
+      },
+    ];
   };
 
   const buildPrimaryItemPayload = (items: any) => {
-    let array: { qty: string; meas_qty: string; item_code: string; meas_code: string; }[] = []
+    let array: {
+      qty: string;
+      meas_qty: string;
+      item_code: string;
+      meas_code: string;
+    }[] = [];
     items?.map((itm: any) => {
       array.push({
         qty: itm.rcomQty,
         meas_qty: itm.itemMeasQty,
         item_code: itm.itemCode,
-        meas_code: itm.itemMeasCode
-      })
-    })
-    return array
+        meas_code: itm.itemMeasCode,
+      });
+    });
+    return array;
   };
   useEffect(() => {
     if (!loginDetails || !primaryItemList?.length) return;
@@ -240,13 +268,13 @@ export default function page() {
             ...itm,
             id: i + 1,
             checked: false,
-            reqQty: Math.max(
-              0,
-              itm.recommendedQty - itm.availableQty
-            )
+            reqQty:
+              itm.recommendedQty > itm.availableQty
+                ? Math.max(0, itm.maxQty - itm.availableQty)
+                : Math.max(0, itm.recommendedQty - itm.availableQty),
           })),
         }));
-        setcartItem(result)
+        setcartItem(result);
       } catch (err) {
         console.error(err);
       }
@@ -266,6 +294,145 @@ export default function page() {
     fetchAll();
   }, [loginDetails, primaryItemList]);
 
+  const buildPlaceOrderPayload = (cartItem: any) => {
+    console.log(loginDetails);
+    console.log(cartItem.config);
+    const reqBody = {
+      cloudKitchenId: 1,
+      name: loginDetails?.userName,
+      mobile: "",
+      delDate: moment(cartItem.config.date).format("YYYY-MM-DD") + " 00:00:00",
+      couponId: 0,
+      delType: "ID",
+      storeType: "R",
+      pointCheck: "N",
+      usedPointsAmt: "",
+      pointsAmt: "",
+      taxPercentage: 0,
+      modeOfOrder: "W",
+      paymentRequired: "N",
+      subTotal: 0,
+      tax: 0,
+      discountAmt: 0,
+      couponDiscountAmt: 0,
+      tips: 0,
+      totalOrderAmount: 0,
+      pendingPayment: "Y",
+      entityType: "INTERNAL",
+      kitchenLocationId: 0,
+      itemList: buildPlaceOrderItemsPayload(cartItem, false),
+      partnerLocation: loginDetails?.cloudKitchenName,
+      partnerKitchenId: loginDetails?.cloudKitchenId,
+      partnerItemDeliveryList: buildPlaceOrderItemsPayload(cartItem, true),
+    };
+    console.log("Place Order Payload: ", reqBody);
+    return reqBody;
+  };
+  const buildPlaceOrderItemsPayload = (
+    cartItem: any,
+    isPartnerItemDeliveryList?: boolean
+  ) => {
+    const array: {
+      menuId: number;
+      cgyId: number;
+      itemCode: number;
+      itemType: string;
+      quantity: number;
+      remarks: string;
+      listMeasurements: Array<{
+        qty: number;
+        measurementCode: number;
+        measurementDesc: string;
+        rate: number;
+      }>;
+    }[] = [];
+    const array1: {
+      menuId: number;
+      cgyId: number;
+      itemCode: number;
+      itemType: string;
+      quantity: number;
+      remarks: string;
+      listMeasurements: Array<{
+        qty: number;
+        measurementCode: number;
+        measurementDesc: string;
+        rate: number;
+      }>;
+      itemDelDate: string;
+    }[] = [];
+    cartItem?.items?.map((itm: any) => {
+      array.push({
+        menuId: 0,
+        cgyId: 0,
+        itemCode: itm.itemCode,
+        itemType: itm.itemType,
+        quantity: itm.reqQty,
+        remarks: "",
+        listMeasurements: [
+          {
+            measurementDesc: itm.uom,
+            measurementCode: itm.measCode,
+            qty: 1,
+            rate: 0,
+          },
+        ],
+      });
+      array1.push({
+        menuId: 0,
+        cgyId: 0,
+        itemCode: itm.itemCode,
+        itemType: itm.itemType,
+        quantity: itm.reqQty,
+        remarks: "",
+        listMeasurements: [
+          {
+            measurementDesc: itm.uom,
+            measurementCode: itm.measCode,
+            qty: 1,
+            rate: 0,
+          },
+        ],
+        itemDelDate: moment(cartItem.config.date).format("YYYY-MM-DD"),
+      });
+    });
+    return isPartnerItemDeliveryList ? array1 : array;
+  };
+  const handlePlaceOrder = async () => {
+    if (!loginDetails || !cartItem?.length) return;
+    cartItem.forEach(async (cItem: any) => {
+      console.log(buildPlaceOrderPayload(cItem));
+      try {
+        const res = await callApi({
+          url: "OrderCtl/place_partner_order",
+          body: buildPlaceOrderPayload(cItem),
+        }).unwrap();
+
+        if (res?.status) {
+          alert(
+            `Order for ${getDayName(
+              new Date(cItem.config.date)
+            )} placed successfully!`
+          );
+          if (cartItem.indexOf(cItem) === cartItem.length - 1) {
+            router.push("/orders");
+          }
+        } else {
+          alert(
+            `Failed to place order for ${getDayName(
+              new Date(cItem.config.date)
+            )}`
+          );
+        }
+      } catch (error) {
+        console.error("Failed to place order", error);
+        alert(
+          `Error placing order for ${getDayName(new Date(cItem.config.date))}`
+        );
+      }
+    });
+  };
+
   const handleHeaderDelete = (groupIndex: number) => {
     const hasSelected = cartItem[groupIndex]?.items?.some(
       (itm: any) => itm.checked
@@ -276,25 +443,85 @@ export default function page() {
       return;
     }
 
-    setcartItem(prev =>
+    setcartItem((prev) =>
       prev.map((grp, i) =>
         i === groupIndex
           ? {
-            ...grp,
-            items: grp.items.filter((itm: any) => !itm.checked),
-          }
+              ...grp,
+              items: grp.items.filter((itm: any) => !itm.checked),
+            }
           : grp
       )
     );
   };
+
+  const handleBulkMoveToNext = (currentIndex: number) => {
+    // if (currentIndex >= cartItem.length - 1) {
+    //   alert("No next delivery available to move items to.");
+    //   return;
+    // }
+
+    const currentGroup = cartItem[currentIndex];
+    const itemsToMove = currentGroup.items.filter((item: any) => item.checked);
+
+    if (itemsToMove.length === 0) {
+      alert("Please select items to move.");
+      return;
+    }
+
+    setcartItem((prev) => {
+      const newState = [...prev];
+
+      // 1. Remove items from current group
+      newState[currentIndex] = {
+        ...newState[currentIndex],
+        items: newState[currentIndex].items.filter(
+          (item: any) => !item.checked
+        ),
+      };
+
+      // Determine destination index
+      const targetIndex =
+        currentIndex >= cartItem.length - 1
+          ? currentIndex - 1
+          : currentIndex + 1;
+
+      const destinationGroup = newState[targetIndex];
+      const destinationItems = destinationGroup.items;
+
+      // Get the date from the destination group's config
+      const targetDate = destinationGroup.config.date;
+
+      const maxId =
+        destinationItems.length > 0
+          ? Math.max(...destinationItems.map((i: any) => i.id))
+          : 0;
+
+      // 2. Add items to destination group with UPDATED DATE
+      const itemsToAdd = itemsToMove.map((item: any, index: number) => ({
+        ...item,
+        checked: false,
+        id: maxId + 1 + index,
+        // Explicitly update the item's date to match the new group's config date
+        itemDelDate: moment(targetDate).format("YYYY-MM-DD"),
+      }));
+
+      newState[targetIndex] = {
+        ...newState[targetIndex],
+        items: [...destinationItems, ...itemsToAdd],
+      };
+
+      return newState;
+    });
+  };
   const handleRowDelete = (groupIndex: number, rowId: number) => {
-    setcartItem(prev =>
+    setcartItem((prev) =>
       prev.map((grp, i) =>
         i === groupIndex
           ? {
-            ...grp,
-            items: grp.items.filter((itm: any) => itm.id !== rowId),
-          }
+              ...grp,
+              items: grp.items.filter((itm: any) => itm.id !== rowId),
+            }
           : grp
       )
     );
@@ -306,9 +533,10 @@ export default function page() {
   ) => {
     if (fromGroupIndex === toGroupIndex) return;
 
-    setcartItem(prev => {
+    setcartItem((prev) => {
       const updated = [...prev];
 
+      // 1. Remove from source
       updated[fromGroupIndex] = {
         ...updated[fromGroupIndex],
         items: updated[fromGroupIndex].items.filter(
@@ -316,11 +544,20 @@ export default function page() {
         ),
       };
 
+      // Get the date from the destination group
+      const targetDate = updated[toGroupIndex].config.date;
+
+      // 2. Add to destination with UPDATED DATE
       updated[toGroupIndex] = {
         ...updated[toGroupIndex],
         items: [
           ...updated[toGroupIndex].items,
-          { ...row, checked: false },
+          {
+            ...row,
+            checked: false,
+            // Explicitly update the item's date property
+            itemDelDate: moment(targetDate).format("YYYY-MM-DD"),
+          },
         ],
       };
 
@@ -330,22 +567,21 @@ export default function page() {
   const handleApplyFilter = () => {
     if (activeGroupIndex === null) return;
 
-    setcartItem(prev =>
+    setcartItem((prev) =>
       prev.map((grp, gIndex) => {
         if (gIndex !== activeGroupIndex) return grp;
 
         return {
           ...grp,
           items: grp.items.map((itm: any) => {
-            if (itm.storageType?.toLowerCase() !== filterType?.toLowerCase()) return itm;
+            if (itm.storageType?.toLowerCase() !== filterType?.toLowerCase())
+              return itm;
 
             const percentage = Number(filterValue) || 0;
             const delta = (itm.reqQty * percentage) / 100;
 
             let updatedQty =
-              filterAddOrSub === "+"
-                ? itm.reqQty + delta
-                : itm.reqQty - delta;
+              filterAddOrSub === "+" ? itm.reqQty + delta : itm.reqQty - delta;
 
             return {
               ...itm,
@@ -376,7 +612,7 @@ export default function page() {
 
     if (activeGroupIndex === null) return;
 
-    setcartItem(prev =>
+    setcartItem((prev) =>
       prev.map((grp, gIndex) => {
         if (gIndex !== activeGroupIndex) return grp;
 
@@ -421,59 +657,127 @@ export default function page() {
     setnewItemModal(false);
   };
 
-
-
-
   return (
-    <Container fluid className='p-4'>
-      <Row className='mb-3'>
-        <Col className='d-flex align-items-center'>
-          <Image src={"back-icon.svg"} height={24} width={24} alt={"backicon"} onClick={() => { router.back() }} />
-          <h3 className='font-24 fw-bold m-0 ms-3'>Recommended Cart Items</h3>
+    <Container fluid className="p-4">
+      <Row className="mb-3">
+        <Col className="d-flex align-items-center">
+          <Image
+            src={"back-icon.svg"}
+            height={24}
+            width={24}
+            alt={"backicon"}
+            onClick={() => {
+              router.back();
+            }}
+          />
+          <h3 className="font-24 fw-bold m-0 ms-3">Recommended Cart Items</h3>
         </Col>
-        <Col className='d-flex align-items-center justify-content-end'>
+        <Col className="d-flex align-items-center justify-content-end">
           {/* <div className='border p-1 me-3'>
           <Image src={"filter-icon.svg"} height={18} width={18} alt="filter"/>
         </div> */}
-          <Button className="btn-filled" onClick={() => { router.push("/cart") }}>Send to Pantry</Button>
+          <Button className="btn-filled" onClick={() => handlePlaceOrder()}>
+            Send to Pantry
+          </Button>
         </Col>
       </Row>
       <Row className="flex-nowrap overflow-auto">
         {cartItem?.map((cart, groupIndex) => (
           <Col xs={12} md={6} key={groupIndex}>
             <div>
-              <div className='d-flex align-items-center justify-content-between bg-gray-light p-3 border'>
+              <div className="d-flex align-items-center justify-content-between bg-gray-light p-3 border">
                 <div>
-                  <h4 className='font-16 text-secondary fw-bold m-0'>{getDayName(new Date(cart.config.date))} Delivery ({cart.items.length} Items)</h4>
-                  <p className='m-0 font-13'>{formatDate(cart.config.date)}</p>
+                  <h4 className="font-16 text-secondary fw-bold m-0">
+                    {getDayName(new Date(cart.config.date))} Delivery (
+                    {cart.items.length} Items)
+                  </h4>
+                  <p className="m-0 font-13">{formatDate(cart.config.date)}</p>
                 </div>
-                <div className='d-flex'>
-                  <div className='border rounded-2 p-2 me-1 bg-white'><Image src={"move-icon.svg"} height={18} width={18} alt='move' /></div>
-                  <div className='border rounded-2 p-2 me-1 bg-white' onClick={() => { handleHeaderDelete(groupIndex) }}><Image src={"delete-icon.svg"} height={18} width={18} alt='del' /></div>
-                  <div className='border rounded-2 p-2 me-1 bg-white' onClick={() => { setActiveGroupIndex(groupIndex); setfilterModal(true); }}><Image src={"filter-icon.svg"} height={18} width={18} alt='filter' /></div>
-                  <div className='border rounded-2 p-2 bg-white' onClick={() => {
-                    setActiveGroupIndex(groupIndex);
-                    setSelectedItem(null);
-                    setSelectedUom(null);
-                    setnewItemModal(true);
-                  }}><Image src={"/orange-plus.png"} height={18} width={18} alt='plus' /></div>
+                <div className="d-flex">
+                  <div
+                    className="border rounded-2 p-2 me-1 bg-white"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => handleBulkMoveToNext(groupIndex)}
+                  >
+                    <Image
+                      src={"move-icon.svg"}
+                      height={18}
+                      width={18}
+                      alt="move"
+                    />
+                  </div>
+                  <div
+                    className="border rounded-2 p-2 me-1 bg-white"
+                    onClick={() => {
+                      handleHeaderDelete(groupIndex);
+                    }}
+                  >
+                    <Image
+                      src={"delete-icon.svg"}
+                      height={18}
+                      width={18}
+                      alt="del"
+                    />
+                  </div>
+                  <div
+                    className="border rounded-2 p-2 me-1 bg-white"
+                    onClick={() => {
+                      setActiveGroupIndex(groupIndex);
+                      setfilterModal(true);
+                    }}
+                  >
+                    <Image
+                      src={"filter-icon.svg"}
+                      height={18}
+                      width={18}
+                      alt="filter"
+                    />
+                  </div>
+                  <div
+                    className="border rounded-2 p-2 bg-white"
+                    onClick={() => {
+                      setActiveGroupIndex(groupIndex);
+                      setSelectedItem(null);
+                      setSelectedUom(null);
+                      setnewItemModal(true);
+                    }}
+                  >
+                    <Image
+                      src={"/orange-plus.png"}
+                      height={18}
+                      width={18}
+                      alt="plus"
+                    />
+                  </div>
                 </div>
               </div>
               <Datatable<OrderRow>
                 columns={getColumns(groupIndex)}
                 rowData={cart?.items}
+                progressPending={isLoading}
+                pagination={true}
               />
             </div>
           </Col>
         ))}
       </Row>
-      <Modal show={filterModal} onHide={() => { setfilterModal(false) }} centered>
+      {/* Modals remain the same */}
+      <Modal
+        show={filterModal}
+        onHide={() => {
+          setfilterModal(false);
+        }}
+        centered
+      >
         <Modal.Header className="border-0">
-          <Modal.Title className='font-18 fw-bold'>Filter</Modal.Title>
+          <Modal.Title className="font-18 fw-bold">Filter</Modal.Title>
         </Modal.Header>
-        <Modal.Body className='border-0'>
-
-          <Form.Select className='mb-3' value={filterType} onChange={(e) => setfilterType(e.target.value)}>
+        <Modal.Body className="border-0">
+          <Form.Select
+            className="mb-3"
+            value={filterType}
+            onChange={(e) => setfilterType(e.target.value)}
+          >
             <option value={"Fridge"}>Fridge</option>
             <option value={"Freezer"}>Freezer</option>
           </Form.Select>
@@ -499,14 +803,16 @@ export default function page() {
               />
             </div>
 
-            <div className="segment percent">
-              %
-            </div>
+            <div className="segment percent">%</div>
           </div>
-
         </Modal.Body>
-        <Modal.Footer className='border-0'>
-          <Button className="btn-outline px-4" onClick={() => { setfilterModal(false) }}>
+        <Modal.Footer className="border-0">
+          <Button
+            className="btn-outline px-4"
+            onClick={() => {
+              setfilterModal(false);
+            }}
+          >
             Cancel
           </Button>
           <Button className="btn-filled" onClick={handleApplyFilter}>
@@ -514,19 +820,28 @@ export default function page() {
           </Button>
         </Modal.Footer>
       </Modal>
-      <Modal show={newItemModal} onHide={() => { setnewItemModal(false) }} centered>
+      <Modal
+        show={newItemModal}
+        onHide={() => {
+          setnewItemModal(false);
+        }}
+        centered
+      >
         <Modal.Header className="border-0">
-          <Modal.Title className='font-18 fw-bold'>Add New Entry</Modal.Title>
+          <Modal.Title className="font-18 fw-bold">Add New Entry</Modal.Title>
         </Modal.Header>
-        <Modal.Body className='border-0'>
-          <Form.Select className='mb-3' value={selectedItem?.itemCode || ""}
+        <Modal.Body className="border-0">
+          <Form.Select
+            className="mb-3"
+            value={selectedItem?.itemCode || ""}
             onChange={(e) => {
               const item = itemList.find(
                 (i: any) => i.itemCode === Number(e.target.value)
               );
               setSelectedItem(item);
               setSelectedUom(null);
-            }}>
+            }}
+          >
             <option value={""}>Select Item</option>
             {itemList?.map((itm: any) => (
               <option key={itm.itemCode} value={itm.itemCode}>
@@ -534,13 +849,16 @@ export default function page() {
               </option>
             ))}
           </Form.Select>
-          <Form.Select className='mb-3' value={selectedUom?.measCode || ""}
+          <Form.Select
+            className="mb-3"
+            value={selectedUom?.measCode || ""}
             onChange={(e) => {
               const uom = selectedItem.uom_list.find(
                 (u: any) => u.measCode === Number(e.target.value)
               );
               setSelectedUom(uom);
-            }}>
+            }}
+          >
             <option value={""}>Select UOM</option>
             {selectedItem?.uom_list?.map((u: any) => (
               <option key={u.measCode} value={u.measCode}>
@@ -549,8 +867,13 @@ export default function page() {
             ))}
           </Form.Select>
         </Modal.Body>
-        <Modal.Footer className='border-0'>
-          <Button className="btn-outline px-4" onClick={() => { setfilterModal(false) }}>
+        <Modal.Footer className="border-0">
+          <Button
+            className="btn-outline px-4"
+            onClick={() => {
+              setfilterModal(false);
+            }}
+          >
             Cancel
           </Button>
           <Button className="btn-filled" onClick={handleAddNewItem}>
@@ -559,5 +882,5 @@ export default function page() {
         </Modal.Footer>
       </Modal>
     </Container>
-  )
+  );
 }

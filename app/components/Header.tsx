@@ -64,8 +64,11 @@ export default function Header() {
           <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer">
             <h4 className="font-14 fw-bold text-primary text-center m-0">Control sheet</h4>
           </div>
-          <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer" onClick={()=>{router.push("/orders")}}>
+          <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer" onClick={()=>{router.push("/orders"); setOpen(false)}}>
             <h4 className="font-14 fw-bold text-primary text-center m-0">Orders</h4>
+          </div>
+          <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer" onClick={()=>{router.push("/assemblyItems"); setOpen(false)}}>
+            <h4 className="font-14 fw-bold text-primary text-center m-0">Assembly Items</h4>
           </div>
           <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer" onClick={()=>{handleLogout()}}>
             <h4 className="font-14 fw-bold text-primary text-center m-0">Logout</h4>

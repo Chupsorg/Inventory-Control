@@ -4,14 +4,18 @@ import { baseQueryWithAuth } from "./baseQueryWithAuth";
 
 interface ApiArgs {
   url: string;
-  body?: any;
+  body?: Record<string, unknown>;
+}
+
+interface ApiResponse {
+  [key: string]: string | number | boolean | null | object;
 }
 
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithAuth,
   endpoints: (builder) => ({
-    callApi: builder.mutation<any, ApiArgs>({
+    callApi: builder.mutation<ApiResponse, ApiArgs>({
       query: ({ url, body }) => ({
         url,
         method:"POST",

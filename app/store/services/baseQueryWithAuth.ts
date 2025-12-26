@@ -1,5 +1,5 @@
 import { fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { BaseQueryFn } from "@reduxjs/toolkit/query";
+import type { BaseQueryFn, FetchArgs } from "@reduxjs/toolkit/query";
 import { clearLoginDetails } from "../features/authSlice";
 import { backendURL } from "@/app/utils/properties";
 
@@ -29,11 +29,11 @@ export const baseQuery = fetchBaseQuery({
  * 🔥 Wrapper to catch 401 globally
  */
 export const baseQueryWithAuth: BaseQueryFn<
-  any,
+  string | FetchArgs,
   unknown,
   unknown
 > = async (args, api, extraOptions) => {
-  const result: any = await baseQuery(args, api, extraOptions);
+  const result = await baseQuery(args, api, extraOptions);
 
   if (result?.error?.status === 401) {
     // clear redux auth

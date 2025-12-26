@@ -32,7 +32,6 @@ const CONFIG: Record<ENV,{ baseURL: string; imgBaseURL: string }> = {
 ================================ */
 export const baseURL = CONFIG[CURRENT_ENV].baseURL;
 export const imgBaseURL = CONFIG[CURRENT_ENV].imgBaseURL;
-
 export const backendURL = `${baseURL}food/`;
 
 /* ================================

@@ -15,6 +15,7 @@ export default function page() {
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
     const [rememberMeNew, setRememberMeNew] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     useEffect(() => {
         window.history.pushState(null, "", window.location.href);
@@ -55,17 +56,25 @@ export default function page() {
                     document.cookie = `XSRF-TOKEN=${res.token};expires=${res.expireTime};path=/`;
 
                     const data = {
-                        userId: name,
-                        cloudKitchenName: res.cloudKitchenName,
-                        cloudKitchenId: res.cloudKitchenId,
+                      userId: name,
+                      cloudKitchenName: res.cloudKitchenName as string,
+                      cloudKitchenId: res.cloudKitchenId as number,
+                      token: res.token as string,
+                      userName: res.userName as string,
+                      kitchenLocationId: res.kitchenLocationId as number,
+                      entityType: res.entityType as string,
                     };
 
                     localStorage.setItem("login_Details", JSON.stringify(data));
                     dispatch(
                         setLoginDetails({
                             userId: name,
-                            cloudKitchenName: res.cloudKitchenName,
-                            cloudKitchenId: res.cloudKitchenId,
+                            cloudKitchenName: res.cloudKitchenName as string,
+                            cloudKitchenId: res.cloudKitchenId as number,
+                            token: res.token as string,
+                            userName: res.userName as string,
+                            kitchenLocationId: res.kitchenLocationId as number,
+                            entityType: res.entityType as string,
                         })
                     );
                     router.push("/orders");
@@ -113,14 +122,14 @@ export default function page() {
 
                                 <Form.Group className="mb-3 position-relative">
                                     <Form.Control
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         placeholder="Password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
-                                    <span className="password-eye"><Image src={"/eye-icon.svg"} height={18} width={18} alt="eye-icon" /></span>
+                                    <span className="password-eye" onClick={() => setShowPassword(!showPassword)}><Image src={"/eye-icon.svg"} height={18} width={18} alt="eye-icon" /></span>
                                 </Form.Group>
-                                <div className='align-center'>
+                                <div className='d-flex align-items-center justify-content-center'>
                                     <Form.Check
                                         type="checkbox"
                                         label="Remember me"
