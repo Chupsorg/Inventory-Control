@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
   }
 
   // If logged in and accessing login or home → orders
-  if (token && (pathname === "/" || pathname === "/login")) {
+  if (token && (pathname === "/")) {
     return NextResponse.redirect(new URL("/orders", request.url));
   }
 
@@ -22,6 +22,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/history/:path*", "/orders/:path*", "/config/:path*", "/primaryitems/:path*", "/cart/:path*"],
+  matcher: ["/", "/history/:path*", "/orders/:path*", "/config/:path*", "/primaryitems/:path*", "/cart/:path*"],
 };
 
