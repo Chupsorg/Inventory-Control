@@ -185,7 +185,7 @@ export default function page() {
                 className="p-0 border-0 more-toggle"
               >
                 <Image
-                  src={"more-icon.svg"}
+                  src={"/inventorymanagementmore-icon.svg"}
                   height={24}
                   width={24}
                   alt="more-icon"
@@ -662,7 +662,7 @@ export default function page() {
       <Row className="mb-3">
         <Col className="d-flex align-items-center">
           <Image
-            src={"back-icon.svg"}
+            src={"/inventorymanagementback-icon.svg"}
             height={24}
             width={24}
             alt={"backicon"}
@@ -674,7 +674,7 @@ export default function page() {
         </Col>
         <Col className="d-flex align-items-center justify-content-end">
           {/* <div className='border p-1 me-3'>
-          <Image src={"filter-icon.svg"} height={18} width={18} alt="filter"/>
+          <Image src={"/inventorymanagementfilter-icon.svg"} height={18} width={18} alt="filter"/>
         </div> */}
           <Button className="btn-filled" onClick={() => handlePlaceOrder()}>
             Send to Pantry
@@ -700,7 +700,7 @@ export default function page() {
                     onClick={() => handleBulkMoveToNext(groupIndex)}
                   >
                     <Image
-                      src={"move-icon.svg"}
+                      src={"/inventorymanagementmove-icon.svg"}
                       height={18}
                       width={18}
                       alt="move"
@@ -713,7 +713,7 @@ export default function page() {
                     }}
                   >
                     <Image
-                      src={"delete-icon.svg"}
+                      src={"/inventorymanagementdelete-icon.svg"}
                       height={18}
                       width={18}
                       alt="del"
@@ -727,7 +727,7 @@ export default function page() {
                     }}
                   >
                     <Image
-                      src={"filter-icon.svg"}
+                      src={"/inventorymanagementfilter-icon.svg"}
                       height={18}
                       width={18}
                       alt="filter"
@@ -743,7 +743,7 @@ export default function page() {
                     }}
                   >
                     <Image
-                      src={"/orange-plus.png"}
+                      src={"/inventorymanagement/orange-plus.png"}
                       height={18}
                       width={18}
                       alt="plus"

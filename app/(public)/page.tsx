@@ -93,7 +93,7 @@ export default function page() {
     return (
         <Container fluid className="login-page vh-100" >
             <div className="login-logo">
-                <Image src="/chups_logo.svg" alt="logo" width={90} height={30} />
+                <Image src="/inventorymanagement/chups_logo.svg" alt="logo" width={90} height={30} />
             </div>
 
             <Row className="h-100 justify-content-center align-items-center">
@@ -127,7 +127,7 @@ export default function page() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                     />
-                                    <span className="password-eye" onClick={() => setShowPassword(!showPassword)}><Image src={"/eye-icon.svg"} height={18} width={18} alt="eye-icon" /></span>
+                                    <span className="password-eye" onClick={() => setShowPassword(!showPassword)}><Image src={"/inventorymanagement/eye-icon.svg"} height={18} width={18} alt="eye-icon" /></span>
                                 </Form.Group>
                                 <div className='d-flex align-items-center justify-content-center'>
                                     <Form.Check

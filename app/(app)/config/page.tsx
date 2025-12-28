@@ -379,7 +379,7 @@ export default function Page() {
                     placeholder="Select date"
                     disabled={uploadloader}
                   />
-                  <img src="/calendar.png" alt="calendar" />
+                  <img src="/inventorymanagement/calendar.png" alt="calendar" />
                 </div>
               )}
             />
@@ -404,7 +404,7 @@ export default function Page() {
             {!uploadloader && stockJson.length > 0 && (
               <div className="d-flex p-3 border-bottom">
                 <Image
-                  src={"/green-tick.svg"}
+                  src={"/inventorymanagement/green-tick.svg"}
                   height={16}
                   width={16}
                   alt="green-tick"
@@ -439,7 +439,7 @@ export default function Page() {
                     onClick={() => handleUploadClick("upload")}
                   >
                     <Image
-                      src={"/upload-file.png"}
+                      src={"/inventorymanagement/upload-file.png"}
                       height={15}
                       width={15}
                       alt="upload-file"
@@ -453,7 +453,7 @@ export default function Page() {
                     onClick={() => handleUploadClick("photo")}
                   >
                     <Image
-                      src={"/take-photo.png"}
+                      src={"/inventorymanagement/take-photo.png"}
                       height={15}
                       width={15}
                       alt="upload-file"
@@ -489,7 +489,7 @@ export default function Page() {
             {isUploadsuccess && !uploadloader && (
               <div className="d-flex px-3">
                 <Image
-                  src={"/green-tick.svg"}
+                  src={"/inventorymanagement/green-tick.svg"}
                   height={16}
                   width={16}
                   alt="green-tick"
@@ -566,7 +566,7 @@ export default function Page() {
                   }}
                 >
                   <Image
-                    src={"/orange-plus.png"}
+                    src={"/inventorymanagement/orange-plus.png"}
                     height={18}
                     width={18}
                     alt="orange-plus"

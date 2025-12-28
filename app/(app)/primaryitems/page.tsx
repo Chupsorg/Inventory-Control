@@ -240,7 +240,7 @@ const PrimaryItemGroup = ({
             <InputGroup>
               <InputGroup.Text className="bg-white border-end-0">
                 <Image
-                  src={"/search_black.svg"}
+                  src={"/inventorymanagement/search_black.svg"}
                   height={16}
                   width={16}
                   alt="search"
@@ -376,7 +376,7 @@ export default function Page() {
         <Col>
           <div className="d-flex align-items-center">
             <Image
-              src={"/back-icon.svg"}
+              src={"/inventorymanagement/back-icon.svg"}
               height={24}
               width={24}
               alt={"backicon"}
@@ -391,7 +391,7 @@ export default function Page() {
         <Col className="d-flex align-items-center justify-content-end">
           <div className="border p-1 me-3 cursor-pointer">
             <Image
-              src={"/filter-icon.svg"}
+              src={"/inventorymanagement/filter-icon.svg"}
               height={18}
               width={18}
               alt="filter"

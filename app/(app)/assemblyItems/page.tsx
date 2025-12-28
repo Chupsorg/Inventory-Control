@@ -221,7 +221,7 @@ export default function Page() {
       <Row>
         <Col xs={4} className="d-flex align-items-center">
           <Image
-            src={"/back-icon.svg"} // Fixed: Added leading slash
+            src={"/inventorymanagement/back-icon.svg"} // Fixed: Added leading slash
             height={24}
             width={24}
             alt={"backicon"}

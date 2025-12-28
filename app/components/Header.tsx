@@ -31,7 +31,7 @@ export default function Header() {
     <>
       <div className="d-flex align-items-center p-3 border-bottom">
         <Image
-          src="/ham-icon.svg"
+          src="/inventorymanagement/ham-icon.svg"
           width={20}
           height={20}
           alt="ham-icon"
@@ -52,7 +52,7 @@ export default function Header() {
         <div className="p-3">
           <div className="d-flex align-items-center p-3">
             <Image
-              src="/ham-icon.svg"
+              src="/inventorymanagement/ham-icon.svg"
               width={20}
               height={20}
               alt="ham-icon"

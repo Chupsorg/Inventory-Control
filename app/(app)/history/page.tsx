@@ -97,7 +97,7 @@ export default function Page() {
         <Row>
           <Col xs={4} className="d-flex align-items-center">
             <Image
-              src={"back-icon.svg"}
+              src={"/inventorymanagementback-icon.svg"}
               height={24}
               width={24}
               alt={"backicon"}
