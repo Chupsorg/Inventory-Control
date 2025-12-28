@@ -131,14 +131,14 @@ export default function Page() {
         }).unwrap();
         if (res.status) {
           const updatedData =
-            res.object[0]?.dataValue?.map(
+            (res.object as any)?.[0]?.dataValue?.map(
               (con: { date: Date; day: DayCode }) => ({
                 ...con,
                 date: new Date(con.date),
               })
             ) ?? [];
           setDeliveryDates(updatedData);
-          setconfigDataId(res.object[0]?.dataId);
+          setconfigDataId((res.object as any)?.[0]?.dataId);
         } else {
           alert(res.message);
         }
@@ -152,14 +152,14 @@ export default function Page() {
           url: `StoreCtl/get-inventory-data/STOCK/${loginDetails?.cloudKitchenId}`,
         }).unwrap();
         if (res.status) {
-          const updatedRes = res.object[0]?.dataValue?.map(
+          const updatedRes = (res.object as any)?.[0]?.dataValue?.map(
             (data: any, i: number) => ({
               ...data,
               id: i + 1,
             })
           );
           setstockJson(updatedRes);
-          setstockDataId(res.object[0]?.dataId);
+          setstockDataId((res.object as any)?.[0]?.dataId);
         } else {
           setstockJson([]);
         }
@@ -178,14 +178,14 @@ export default function Page() {
         url: `StoreCtl/get-inventory-data/STOCK/${loginDetails?.cloudKitchenId}`,
       }).unwrap();
       if (res.status) {
-        const updatedRes = res.object[0]?.dataValue?.map(
+        const updatedRes = (res.object as any)?.[0]?.dataValue?.map(
           (data: any, i: number) => ({
             ...data,
             id: i + 1,
           })
         );
         setstockJson(updatedRes);
-        setstockDataId(res.object[0]?.dataId);
+        setstockDataId((res.object as any)?.[0]?.dataId);
         return res;
       } else {
         setstockJson([]);
@@ -224,7 +224,7 @@ export default function Page() {
     try {
       const res = await callApi({
         url: `StoreCtl/upload-stock-file/${loginDetails?.cloudKitchenId}`,
-        body: formData,
+        body: formData as any,
       }).unwrap();
 
       if (res.status) {
@@ -306,7 +306,7 @@ export default function Page() {
       };
       let res = await callApi({
         url: `StoreCtl/save-or-update-inventory-data`,
-        body: params,
+        body: params as any,
       }).unwrap();
       if (res.status) {
         dispatch(setConfig(deliveryDates));
@@ -330,7 +330,7 @@ export default function Page() {
       };
       let res = await callApi({
         url: `StoreCtl/save-or-update-inventory-data`,
-        body: params,
+        body: params as any,
       }).unwrap();
       if (res.status) {
         setassemblyModal(false);

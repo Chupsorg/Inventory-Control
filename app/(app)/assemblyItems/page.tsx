@@ -167,7 +167,7 @@ export default function Page() {
         if (res.status) {
           console.log("Assembly Items:", res.object);
           const updatedData: AssemblyItem[] =
-            res.object?.map((order: AssemblyItem, index: number) => ({
+            (res.object as AssemblyItem[])?.map((order: AssemblyItem, index: number) => ({
               ...order,
               id: index + 1,
             })) ?? [];
@@ -200,8 +200,7 @@ export default function Page() {
 
       let res = await callApi({
         url: `StoreCtl/update-assembly-item-basic-details`,
-        method: "POST",
-        body: payload,
+        body: payload as any,
       }).unwrap();
 
       if (res.status) {

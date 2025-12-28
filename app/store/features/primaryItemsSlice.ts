@@ -116,11 +116,11 @@ const primaryItemsSlice = createSlice({
         group.items.forEach((item) => {
           if (item.checked) {
             const factor = percentage / 100;
-            let newQty = item.rcomQty;
+            let newQty = item.rcomQty as number;
             if (operator === "+") {
-              newQty = Math.round(item.rcomQty * (1 + factor));
+              newQty = Math.round(item.rcomQty as number * (1 + factor));
             } else {
-              newQty = Math.round(item.rcomQty * (1 - factor));
+              newQty = Math.round(item.rcomQty as number * (1 - factor));
             }
             item.rcomQty = newQty > 0 ? newQty : 0;
           }

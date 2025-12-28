@@ -345,14 +345,14 @@ export default function Page() {
           config.map((cfg: any) =>
             callApi({
               url: "StoreCtl/get-inventory-primary-items-list",
-              body: buildPrimaryItemPayload(cfg),
+              body: buildPrimaryItemPayload(cfg) as any,
             }).unwrap()
           )
         );
 
         const result = responses.map((res, index) => ({
           config: config[index],
-          items: res.object.map((itm: any, i: number) => ({
+          items: (res.object as any)?.map((itm: any, i: number) => ({
             ...itm,
             id: i + 1,
             checked: false,
@@ -360,7 +360,7 @@ export default function Page() {
           })),
         }));
 
-        dispatch(setPrimaryItems(result));
+        dispatch(setPrimaryItems(result as any));
       } catch (err) {
         console.error(err);
       }

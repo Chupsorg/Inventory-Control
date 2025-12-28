@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useCallApiMutation } from '@/app/store/services/apiSlice';
 import { useDispatch, useSelector } from 'react-redux';
 import { Order, setDeliveredOrders } from '@/app/store/features/orderSlice';
+import type { RootState } from "@/app/store";
 
 const columns: TableColumn<Order>[] = [
   {
@@ -74,7 +75,7 @@ export default function Page() {
 
         if (res.status) {
             const updatedData: Order[] =
-            res.object?.map((order: Order, index: number) => ({
+            (res.object as any)?.map((order: Order, index: number) => ({
                 ...order,
                 id: index + 1,
             })) ?? [];

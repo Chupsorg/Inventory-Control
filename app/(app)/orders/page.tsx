@@ -77,7 +77,7 @@ export default function Page() {
 
       if (res.status) {
         const updatedData: OrderItem[] =
-          res.object?.orderedItems?.map((item: any, index: number) => ({
+          (res.object as any)?.orderedItems?.map((item: any, index: number) => ({
             ...item,
             id: index + 1,
             // Ensure fields exist for inputs
@@ -86,7 +86,7 @@ export default function Page() {
           })) ?? [];
 
         const modifiedOrder = {
-          ...res.object,
+          ...(res.object as any),
           orderedItems: updatedData,
         };
 
@@ -233,7 +233,7 @@ export default function Page() {
 
         if (res.status) {
           const updatedData: Order[] =
-            res.object?.map((order: Order, index: number) => ({
+            (res.object as any)?.map((order: Order, index: number) => ({
               ...order,
               id: index + 1,
             })) ?? [];
@@ -250,16 +250,6 @@ export default function Page() {
       handleGetActiveOrders();
     }
   }, [rehydrated, loginDetails, callApi, dispatch]);
-
-  const buildOrderReceivedPayload = (order: any) => {
-    return {
-      cloud_kitchen_id: loginDetails?.cloudKitchenId,
-      delivery_date: new Date(cfg.date).toISOString().split("T")[0],
-      sale_days: cfg.days,
-      previous_week_count: 1,
-      sale_dates: cfg.custom_date_range,
-    };
-  };
 
   const handleUpdateOrderReceived = async () => {
     const obj = {
@@ -292,8 +282,7 @@ export default function Page() {
     try {
       let res = await callApi({
         url: `DeliveryCtl/update-order-item-received-qty/${orderDetails?.orderId}`,
-        method: "POST",
-        body: arr,
+        body: arr as any,
       }).unwrap();
 
       if (res.status) {
@@ -306,7 +295,7 @@ export default function Page() {
 
         if (refreshedRes.status) {
           const updatedData: Order[] =
-            refreshedRes.object?.map((order: Order, index: number) => ({
+            (refreshedRes.object as any)?.map((order: Order, index: number) => ({
               ...order,
               id: index + 1,
             })) ?? [];

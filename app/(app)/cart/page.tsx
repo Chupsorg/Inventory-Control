@@ -257,14 +257,14 @@ export default function page() {
           primaryItemList.map((cfg: any) =>
             callApi({
               url: `StoreCtl/get-inventory-assembly-items-list/${loginDetails?.cloudKitchenId} `,
-              body: buildPrimaryItemPayload(cfg.items),
+              body: buildPrimaryItemPayload(cfg.items) as any,
             }).unwrap()
           )
         );
 
         const result = responses.map((res, index) => ({
           config: primaryItemList[index].config,
-          items: res.object.map((itm: any, i: number) => ({
+          items: (res.object as any[])?.map((itm: any, i: number) => ({
             ...itm,
             id: i + 1,
             checked: false,
@@ -284,7 +284,7 @@ export default function page() {
         }).unwrap();
 
         if (res?.status) {
-          setitemList(res.object || []);
+          setitemList(res.object as any || []);
         }
       } catch (error) {
         console.error("Failed to fetch item list", error);
@@ -405,7 +405,7 @@ export default function page() {
       try {
         const res = await callApi({
           url: "OrderCtl/place_partner_order",
-          body: buildPlaceOrderPayload(cItem),
+          body: buildPlaceOrderPayload(cItem) as any,
         }).unwrap();
 
         if (res?.status) {

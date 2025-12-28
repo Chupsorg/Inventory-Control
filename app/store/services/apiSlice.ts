@@ -4,7 +4,7 @@ import { baseQueryWithAuth } from "./baseQueryWithAuth";
 
 interface ApiArgs {
   url: string;
-  body?: Record<string, unknown>;
+  body?: Record<any, unknown>;
 }
 
 interface ApiResponse {
