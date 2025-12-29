@@ -381,7 +381,7 @@ export default function Page() {
               width={24}
               alt={"backicon"}
               onClick={() => {
-                router.back();
+                router.push("/orders");
               }}
               style={{ cursor: "pointer" }}
             />

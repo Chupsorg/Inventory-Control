@@ -98,12 +98,12 @@ export default function Page() {
         <Row>
           <Col xs={4} className="d-flex align-items-center">
             <Image
-              src={"/inventorymanagementback-icon.svg"}
+              src={"/inventorymanagement/back-icon.svg"}
               height={24}
               width={24}
               alt={"backicon"}
               onClick={() => {
-                router.back();
+                router.push("/orders");
               }}
             />
             <h3 className="font-24 fw-bold m-0 ms-3">History</h3>
