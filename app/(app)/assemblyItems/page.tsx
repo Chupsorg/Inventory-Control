@@ -219,9 +219,9 @@ export default function Page() {
         return;
       }
 
-      const payload = [];
+      const payload = [] as any[];
 
-      (modifiedItems as any)?.map((item) => {
+      (modifiedItems as any)?.map((item: any) => {
         item.qty = item.measQty;
         payload.push(item);
       });
