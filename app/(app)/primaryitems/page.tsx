@@ -69,18 +69,16 @@ const PrimaryItemGroup = ({
       (item: any) =>
         item.itemName?.toLowerCase().includes(lowerSearch) ||
         item.mainItemName?.toLowerCase().includes(lowerSearch) ||
-        item.platform?.toLowerCase().includes(lowerSearch)
+        item.platform?.toLowerCase().includes(lowerSearch) ||
+        item.vegType?.toLowerCase() == (lowerSearch)
     );
   }, [con.items, searchTerm]);
 
-  // 2. Check if all *Filtered* items are selected
   const isAllVisibleSelected =
     filteredItems.length > 0 &&
     filteredItems.every((item: any) => item.checked);
 
-  // 3. Handle "Select All" check
   const handleSelectAllVisible = (checked: boolean) => {
-    // Get IDs of currently visible rows
     const visibleIds = filteredItems.map((item: any) => item.id);
     dispatch(
       selectSpecificItems({
@@ -143,7 +141,7 @@ const PrimaryItemGroup = ({
       },
       {
         name: "Event",
-        selector: (row) => row.mainItemName,
+        selector: (row) => (row.platform == "Event" ? row.mainItemName : "-"),
         sortable: true,
         width: "250px",
         center: true,
@@ -247,7 +245,7 @@ const PrimaryItemGroup = ({
                 />
               </InputGroup.Text>
               <Form.Control
-                placeholder="Search items..."
+                placeholder="Search items, platform, event, food type..."
                 className="border-start-0 ps-0"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -389,7 +387,7 @@ export default function Page() {
           </div>
         </Col>
         <Col className="d-flex align-items-center justify-content-end">
-          <div className="border p-1 me-3 cursor-pointer">
+          {/* <div className="border p-1 me-3 cursor-pointer">
             <Image
               src={"/inventorymanagement/filter-icon.svg"}
               height={18}
@@ -400,7 +398,7 @@ export default function Page() {
               }}
               style={{ cursor: "pointer" }}
             />
-          </div>
+          </div> */}
           <Button
             className="btn-filled"
             onClick={() => {

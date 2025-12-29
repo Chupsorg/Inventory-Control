@@ -185,7 +185,7 @@ export default function page() {
                 className="p-0 border-0 more-toggle"
               >
                 <Image
-                  src={"/inventorymanagementmore-icon.svg"}
+                  src={"/inventorymanagement/more-icon.svg"}
                   height={24}
                   width={24}
                   alt="more-icon"
@@ -662,7 +662,7 @@ export default function page() {
       <Row className="mb-3">
         <Col className="d-flex align-items-center">
           <Image
-            src={"/inventorymanagementback-icon.svg"}
+            src={"/inventorymanagement/back-icon.svg"}
             height={24}
             width={24}
             alt={"backicon"}
@@ -674,7 +674,7 @@ export default function page() {
         </Col>
         <Col className="d-flex align-items-center justify-content-end">
           {/* <div className='border p-1 me-3'>
-          <Image src={"/inventorymanagementfilter-icon.svg"} height={18} width={18} alt="filter"/>
+          <Image src={"/inventorymanagement/filter-icon.svg"} height={18} width={18} alt="filter"/>
         </div> */}
           <Button className="btn-filled" onClick={() => handlePlaceOrder()}>
             Send to Pantry
@@ -700,7 +700,7 @@ export default function page() {
                     onClick={() => handleBulkMoveToNext(groupIndex)}
                   >
                     <Image
-                      src={"/inventorymanagementmove-icon.svg"}
+                      src={"/inventorymanagement/move-icon.svg"}
                       height={18}
                       width={18}
                       alt="move"
@@ -713,7 +713,7 @@ export default function page() {
                     }}
                   >
                     <Image
-                      src={"/inventorymanagementdelete-icon.svg"}
+                      src={"/inventorymanagement/delete-icon.svg"}
                       height={18}
                       width={18}
                       alt="del"
@@ -727,7 +727,7 @@ export default function page() {
                     }}
                   >
                     <Image
-                      src={"/inventorymanagementfilter-icon.svg"}
+                      src={"/inventorymanagement/filter-icon.svg"}
                       height={18}
                       width={18}
                       alt="filter"

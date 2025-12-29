@@ -140,7 +140,7 @@ export default function Page() {
           setDeliveryDates(updatedData);
           setconfigDataId((res.object as any)?.[0]?.dataId);
         } else {
-          alert(res.message);
+          console.log(res.message);
         }
       } catch (error) {
         console.error("API error fetching config", error);
@@ -238,7 +238,7 @@ export default function Page() {
           }
         }, 5000);
       } else {
-        alert(res.message);
+        console.log(res.message);
         setisUploadsuccess(false);
         setuploadloader(false); // Stop loading on API failure
       }
@@ -312,7 +312,7 @@ export default function Page() {
         dispatch(setConfig(deliveryDates));
         router.push("/primaryitems");
       } else {
-        alert(res.message);
+        console.log(res.message);
       }
     } catch (err) {
       alert("error");
@@ -336,7 +336,7 @@ export default function Page() {
         setassemblyModal(false);
         reloadStock();
       } else {
-        alert(res.message);
+        console.log(res.message);
       }
     } catch (err) {
       alert("error");

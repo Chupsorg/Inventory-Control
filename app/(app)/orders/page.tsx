@@ -93,7 +93,7 @@ export default function Page() {
         setOrderDetails(modifiedOrder);
         setShowOrderDetails(true);
       } else {
-        alert(res.message);
+        console.log(res.message);
       }
     } catch (error) {
       console.error("API error", error);
@@ -239,7 +239,7 @@ export default function Page() {
             })) ?? [];
           dispatch(setActiveOrders(updatedData));
         } else {
-          alert(res.message);
+          console.log(res.message);
         }
       } catch (error) {
         console.error("API error", error);
@@ -302,7 +302,7 @@ export default function Page() {
           dispatch(setActiveOrders(updatedData));
         }
       } else {
-        alert(res.message);
+        console.log(res.message);
       }
     } catch (error) {
       console.error("API error", error);

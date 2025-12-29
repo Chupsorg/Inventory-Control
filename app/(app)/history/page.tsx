@@ -81,7 +81,7 @@ export default function Page() {
             })) ?? [];
             dispatch(setDeliveredOrders(updatedData));
         } else {
-            alert(res.message);
+            console.log(res.message);
         }
         } catch (error) {
         console.error("API error", error);
