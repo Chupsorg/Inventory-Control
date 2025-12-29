@@ -18,6 +18,7 @@ import { TableColumn } from "react-data-table-component";
 import Datatable from "@/app/components/Datatable";
 import { getDayName, formatDate } from "@/app/utils/properties";
 import moment from "moment";
+import { se } from "react-day-picker/locale";
 
 type OrderRow = {
   id: number;
@@ -53,7 +54,6 @@ export default function page() {
   const [itemList, setitemList] = useState<any[]>([]);
   const [newItemModal, setnewItemModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [selectedUom, setSelectedUom] = useState<any>(null);
 
   const getColumns = (groupIndex: number): TableColumn<OrderRow>[] => {
     const allChecked = cartItem[groupIndex]?.items?.every(
@@ -362,6 +362,7 @@ export default function page() {
       itemDelDate: string;
     }[] = [];
     cartItem?.items?.map((itm: any) => {
+      if(itm.reqQty<=0) return;
       array.push({
         menuId: 0,
         cgyId: 0,
@@ -595,20 +596,20 @@ export default function page() {
     setfilterModal(false);
   };
   const handleAddNewItem = () => {
-    if (!selectedItem && !selectedUom) {
-      alert("Please select item and UOM");
-      return;
-    }
+    // if (!selectedItem && !selectedUom) {
+    //   alert("Please select item and UOM");
+    //   return;
+    // }
 
     if (!selectedItem) {
       alert("Please select item");
       return;
     }
 
-    if (!selectedUom) {
-      alert("Please select UOM");
-      return;
-    }
+    // if (!selectedUom) {
+    //   alert("Please select UOM");
+    //   return;
+    // }
 
     if (activeGroupIndex === null) return;
 
@@ -619,7 +620,7 @@ export default function page() {
         const alreadyExists = grp.items.some(
           (itm: any) =>
             itm.itemCode === selectedItem.itemCode &&
-            itm.measCode === selectedUom.measCode
+            itm.measCode === selectedItem.measCode
         );
 
         if (alreadyExists) {
@@ -640,8 +641,8 @@ export default function page() {
               itemName: selectedItem.itemName,
               itemType: selectedItem.itemType,
               storageType: selectedItem.storageType,
-              uom: selectedUom.uom,
-              measCode: selectedUom.measCode,
+              uom: `${selectedItem.measQty}${selectedItem.uom}`,
+              measCode: selectedItem.measCode,
               reqQty: 0,
               availableQty: 0,
               recommendedQty: 0,
@@ -653,7 +654,6 @@ export default function page() {
     );
 
     setSelectedItem(null);
-    setSelectedUom(null);
     setnewItemModal(false);
   };
 
@@ -738,7 +738,6 @@ export default function page() {
                     onClick={() => {
                       setActiveGroupIndex(groupIndex);
                       setSelectedItem(null);
-                      setSelectedUom(null);
                       setnewItemModal(true);
                     }}
                   >
@@ -839,30 +838,12 @@ export default function page() {
                 (i: any) => i.itemCode === Number(e.target.value)
               );
               setSelectedItem(item);
-              setSelectedUom(null);
             }}
           >
             <option value={""}>Select Item</option>
             {itemList?.map((itm: any) => (
               <option key={itm.itemCode} value={itm.itemCode}>
-                {itm.itemName}
-              </option>
-            ))}
-          </Form.Select>
-          <Form.Select
-            className="mb-3"
-            value={selectedUom?.measCode || ""}
-            onChange={(e) => {
-              const uom = selectedItem.uom_list.find(
-                (u: any) => u.measCode === Number(e.target.value)
-              );
-              setSelectedUom(uom);
-            }}
-          >
-            <option value={""}>Select UOM</option>
-            {selectedItem?.uom_list?.map((u: any) => (
-              <option key={u.measCode} value={u.measCode}>
-                {u.qty} {u.uom}
+                {itm.itemName} - {itm.measQty}{itm.uom}
               </option>
             ))}
           </Form.Select>
@@ -871,7 +852,7 @@ export default function page() {
           <Button
             className="btn-outline px-4"
             onClick={() => {
-              setfilterModal(false);
+              setnewItemModal(false);
             }}
           >
             Cancel
