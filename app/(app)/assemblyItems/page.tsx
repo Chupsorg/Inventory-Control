@@ -27,6 +27,7 @@ export default function Page() {
   >(null);
   const [originalItemsList, setOriginalItemsList] = useState<AssemblyItem[]>([]);
   const [modifiedItems, setModifiedItems] = useState<AssemblyItem[]>([]);
+  const [searchText, setSearchText] = useState("");
 
   const loginDetails = useSelector(
     (state: RootState) => state.auth.login_Details
@@ -34,6 +35,20 @@ export default function Page() {
   const rehydrated = useSelector(
     (state: RootState) => state._persist?.rehydrated
   );
+
+  const filteredItems = useMemo(() => {
+    if (!assemblyItemsList) return [];
+    if (!searchText) return assemblyItemsList;
+
+    const lowerSearch = searchText.toLowerCase();
+
+    return assemblyItemsList.filter((item) => {
+      return (
+        item.itemName.toLowerCase().includes(lowerSearch) ||
+        item.itemCode.toString().includes(lowerSearch)
+      );
+    });
+  }, [assemblyItemsList, searchText]);
 
   const updateModifiedList = useCallback(
     (newItem: AssemblyItem) => {
@@ -167,10 +182,12 @@ export default function Page() {
         if (res.status) {
           console.log("Assembly Items:", res.object);
           const updatedData: AssemblyItem[] =
-            (res.object as AssemblyItem[])?.map((order: AssemblyItem, index: number) => ({
-              ...order,
-              id: index + 1,
-            })) ?? [];
+            (res.object as AssemblyItem[])?.map(
+              (order: AssemblyItem, index: number) => ({
+                ...order,
+                id: index + 1,
+              })
+            ) ?? [];
 
           setAssemblyItemsList(updatedData);
           setOriginalItemsList(JSON.parse(JSON.stringify(updatedData)));
@@ -217,10 +234,10 @@ export default function Page() {
 
   return (
     <Container fluid className="p-4">
-      <Row>
-        <Col xs={4} className="d-flex align-items-center">
+      <Row className="justify-content-between align-items-center">
+        <Col xs={12} md={6} className="d-flex align-items-center mb-3 mb-md-0">
           <Image
-            src={"/inventorymanagement/back-icon.svg"} // Fixed: Added leading slash
+            src={"/inventorymanagement/back-icon.svg"}
             height={24}
             width={24}
             alt={"backicon"}
@@ -231,11 +248,21 @@ export default function Page() {
           />
           <h3 className="font-24 fw-bold m-0 ms-3">Assembly Items</h3>
         </Col>
+
+        <Col xs={12} md={4} lg={3}>
+          <Form.Control
+            type="search"
+            placeholder="Search items..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        </Col>
       </Row>
+
       <Row className="mt-4">
         <Datatable<AssemblyItem>
           columns={columns}
-          rowData={assemblyItemsList || []}
+          rowData={filteredItems}
           pagination={true}
           progressPending={isLoading}
         />
