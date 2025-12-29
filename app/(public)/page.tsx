@@ -53,7 +53,7 @@ export default function page() {
 
             if (res && res.token) {
                 if (res.cloudKitchenId !== 0) {
-                    document.cookie = `XSRF-TOKEN=${res.token};expires=${res.expireTime};path=/`;
+                    document.cookie = `token=${res.token};expires=${res.expireTime};path=/`;
 
                     const data = {
                       userId: name,

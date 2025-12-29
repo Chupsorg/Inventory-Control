@@ -13,7 +13,7 @@ export const baseQuery = fetchBaseQuery({
     if (typeof document !== "undefined") {
       const token = document.cookie
         .split("; ")
-        .find((c) => c.startsWith("XSRF-TOKEN="))
+        .find((c) => c.startsWith("token="))
         ?.split("=")[1];
 
       if (token) {
@@ -42,7 +42,7 @@ export const baseQueryWithAuth: BaseQueryFn<
     // clear cookie
     if (typeof document !== "undefined") {
       document.cookie =
-        "XSRF-TOKEN=null;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/";
+        "token=null;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/";
     }
 
     // redirect to login
