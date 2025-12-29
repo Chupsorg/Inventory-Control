@@ -13,6 +13,8 @@ interface AssemblyItem {
   id?: number;
   itemCode: number;
   itemName: string;
+  uom: string;
+  measQty: number;
   itemType: string;
   maxQty: number;
   storageType: "FRIDGE" | "FREEZER" | "OTHER";
@@ -137,6 +139,11 @@ export default function Page() {
         sortable: true,
       },
       {
+        name: "UOM",
+        selector: (row) => `${row.measQty} ${row.uom}`,
+        sortable: true,
+      },
+      {
         name: "Storage Type",
         selector: (row) => row.storageType,
         sortable: true,
@@ -212,7 +219,12 @@ export default function Page() {
         return;
       }
 
-      const payload = modifiedItems.map(({ id, ...item }) => item);
+      const payload = [];
+
+      (modifiedItems as any)?.map((item) => {
+        item.qty = item.measQty;
+        payload.push(item);
+      });
       console.log("Sending payload:", payload);
 
       let res = await callApi({
