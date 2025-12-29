@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
 
   // If logged in and accessing login or home → orders
   if (token && (pathname === "/")) {
-    return NextResponse.redirect(new URL("/orders", request.url));
+    return NextResponse.redirect(new URL("/inventorymanagement/orders", request.url));
   }
 
   return NextResponse.next();
