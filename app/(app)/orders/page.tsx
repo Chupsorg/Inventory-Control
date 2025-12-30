@@ -47,8 +47,6 @@ export default function Page() {
     (state: RootState) => state._persist?.rehydrated
   );
 
-  // 1. FIXED: Use useCallback and functional state update (prev => ...)
-  // This prevents orderDetailColumns from re-calculating on every keystroke, fixing focus loss.
   const handleItemChange = useCallback(
     (id: number, field: string, value: string | number) => {
       setOrderDetails((prev) => {
@@ -67,8 +65,6 @@ export default function Page() {
     []
   );
 
-  // 2. FIXED: Moved this function BEFORE 'columns' definition
-  // 'columns' references this function, so it must be defined first.
   const handleGetOrderDetails = async (order: any) => {
     try {
       let res = await callApi({
@@ -100,7 +96,6 @@ export default function Page() {
     }
   };
 
-  // 3. FIXED: Wrapped in useMemo so it doesn't get recreated on every render
   const columns: TableColumn<Order>[] = useMemo(
     () => [
       {
@@ -221,7 +216,7 @@ export default function Page() {
         ),
       },
     ],
-    [handleItemChange] // Only depends on the handler now
+    [handleItemChange]
   );
 
   useEffect(() => {

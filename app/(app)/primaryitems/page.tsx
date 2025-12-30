@@ -379,7 +379,7 @@ export default function Page() {
               width={24}
               alt={"backicon"}
               onClick={() => {
-                router.push("/orders");
+                router.push("/config");
               }}
               style={{ cursor: "pointer" }}
             />

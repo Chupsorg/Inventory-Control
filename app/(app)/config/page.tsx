@@ -20,9 +20,10 @@ import {
 } from "@/app/utils/properties";
 import { useCallApiMutation } from "@/app/store/services/apiSlice";
 import { useRouter } from "next/navigation";
-import { setConfig } from "@/app/store/features/configSlice";
+import { clearConfig, setConfig } from "@/app/store/features/configSlice";
 import { TableColumn } from "react-data-table-component";
 import Datatable from "@/app/components/Datatable";
+import { clearPrimaryItems } from "@/app/store/features/primaryItemsSlice";
 
 type DayCode = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
 type DeliveryDate = {
@@ -217,9 +218,8 @@ export default function Page() {
       formData.append("file", file);
     });
 
-    // Start Loading
     setuploadloader(true);
-    setisUploadsuccess(false); // Reset success state
+    setisUploadsuccess(false);
 
     try {
       const res = await callApi({
@@ -228,25 +228,23 @@ export default function Page() {
       }).unwrap();
 
       if (res.status) {
-        // KEEP LOADER TRUE - Wait for stock update polling
         const callFetchStock = setInterval(async () => {
           const stock = await reloadStock();
           if (stock && stock.status) {
             setisUploadsuccess(true);
-            setuploadloader(false); // STOP Loading only when stock is found
+            setuploadloader(false);
             clearInterval(callFetchStock);
           }
         }, 5000);
       } else {
         console.log(res.message);
         setisUploadsuccess(false);
-        setuploadloader(false); // Stop loading on API failure
+        setuploadloader(false);
       }
     } catch (err) {
       console.error("Upload failed", err);
-      setuploadloader(false); // Stop loading on Network failure
+      setuploadloader(false);
     }
-    // Do NOT put setuploadloader(false) in finally block, as it kills the loader before polling finishes
   };
 
   const toggleDay = (
@@ -296,30 +294,36 @@ export default function Page() {
   };
 
   const handleSaveConfig = async () => {
-    try {
-      let params = {
-        data_id: configDataId,
-        cloud_kitchen_id: loginDetails?.cloudKitchenId,
-        data_type: "CONFIG",
-        status: "A",
-        data_value: deliveryDates,
-      };
-      let res = await callApi({
-        url: `StoreCtl/save-or-update-inventory-data`,
-        body: params as any,
-      }).unwrap();
-      if (res.status) {
-        dispatch(setConfig(deliveryDates));
-        router.push("/primaryitems");
-      } else {
-        console.log(res.message);
-      }
-    } catch (err) {
-      alert("error");
+    if (stockDataId <= 0) {
+      alert('Please upload stock file to proceed!')
+      return;
     }
+      try {
+        let params = {
+          data_id: configDataId,
+          cloud_kitchen_id: loginDetails?.cloudKitchenId,
+          data_type: "CONFIG",
+          status: "A",
+          data_value: deliveryDates,
+        };
+        let res = await callApi({
+          url: `StoreCtl/save-or-update-inventory-data`,
+          body: params as any,
+        }).unwrap();
+        if (res.status) {
+          dispatch(clearPrimaryItems([] as any));
+          dispatch(setConfig(deliveryDates));
+          router.push("/primaryitems");
+        } else {
+          dispatch(clearConfig([] as any));
+          console.log(res.message);
+        }
+      } catch (err) {
+        alert("error");
+      }
   };
 
-  const HandleUpdateAssembly = async () => {
+  const handleUpdateAssembly = async () => {
     try {
       let params = {
         data_id: stockDataId,
@@ -706,7 +710,7 @@ export default function Page() {
               <Button
                 className="btn-filled text-capitalize"
                 onClick={() => {
-                  HandleUpdateAssembly();
+                  handleUpdateAssembly();
                 }}
               >
                 save
@@ -735,7 +739,7 @@ export default function Page() {
             <Button
               className="btn-filled text-capitalize"
               onClick={() => {
-                HandleUpdateAssembly();
+                handleUpdateAssembly();
               }}
             >
               save
