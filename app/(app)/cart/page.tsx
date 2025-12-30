@@ -11,6 +11,7 @@ import {
   Button,
   Form,
   Dropdown,
+  InputGroup,
   Modal,
 } from "react-bootstrap";
 import Image from "next/image";
@@ -18,47 +19,103 @@ import { TableColumn } from "react-data-table-component";
 import Datatable from "@/app/components/Datatable";
 import { getDayName, formatDate } from "@/app/utils/properties";
 import moment from "moment";
-import { se } from "react-day-picker/locale";
 
 type OrderRow = {
   id: number;
+  itemCode: number;
   itemName: string;
+  itemType: string;
   availableQty: number;
   recommendedQty: number;
   reqQty: number;
+  originalReqQty: number;
   storageType: string;
   uom: string;
+  measQty: number;
+  measCode: number;
   groupIndex: number;
   checked: boolean;
+  itemDelDate?: string;
 };
 
-export default function page() {
+type GroupUiState = {
+  searchText: string;
+  viewFilter: "ALL" | "ZERO" | "UNCHANGED";
+  bulkMode: "PERCENT" | "VALUE";
+  bulkOperator: "+" | "-";
+  bulkValue: number | "";
+};
+
+export default function Page() {
   const [callApi, { isLoading }] = useCallApiMutation();
   const router = useRouter();
-  const dispatch = useDispatch();
   const loginDetails = useSelector(
     (state: RootState) => state.auth.login_Details
   );
-  const { list: primaryItemList, isFetched } = useSelector(
+  const { list: primaryItemList } = useSelector(
     (state: RootState) => state.primaryItems
   );
+
   const [cartItem, setcartItem] = useState<any[]>([]);
-
-  const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
-
-  const [filterModal, setfilterModal] = useState(false);
-  const [filterType, setfilterType] = useState("Fridge");
-  const [filterAddOrSub, setfilterAddOrSub] = useState("+");
-  const [filterValue, setfilterValue] = useState<number>(0);
-
   const [itemList, setitemList] = useState<any[]>([]);
+
+  const [groupUiStates, setGroupUiStates] = useState<{
+    [key: number]: GroupUiState;
+  }>({});
+
   const [newItemModal, setnewItemModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
+
+  const getUiState = (index: number): GroupUiState => {
+    return (
+      groupUiStates[index] || {
+        searchText: "",
+        viewFilter: "ALL",
+        bulkMode: "VALUE",
+        bulkOperator: "+",
+        bulkValue: "",
+      }
+    );
+  };
+
+  const updateUiState = (index: number, updates: Partial<GroupUiState>) => {
+    setGroupUiStates((prev) => ({
+      ...prev,
+      [index]: { ...getUiState(index), ...updates },
+    }));
+  };
+
+  const getFilteredItems = (items: OrderRow[], groupIndex: number) => {
+    const ui = getUiState(groupIndex);
+    let filtered = items;
+
+    if (ui.searchText) {
+      const lower = ui.searchText.toLowerCase();
+      filtered = filtered.filter(
+        (i) =>
+          i.itemName.toLowerCase().includes(lower) ||
+          i.itemCode.toString().includes(lower) ||
+          i.storageType.toLowerCase().includes(lower)
+      );
+    }
+
+    if (ui.viewFilter === "ZERO") {
+      filtered = filtered.filter((i) => i.reqQty === 0);
+    } else if (ui.viewFilter === "UNCHANGED") {
+      filtered = filtered.filter((i) => i.reqQty === i.originalReqQty);
+    }
+
+    return filtered;
+  };
 
   const getColumns = (groupIndex: number): TableColumn<OrderRow>[] => {
-    const allChecked = cartItem[groupIndex]?.items?.every(
-      (i: any) => i.checked
-    );
+    const currentGroup = cartItem[groupIndex];
+    if (!currentGroup) return [];
+
+    const visibleItems = getFilteredItems(currentGroup.items, groupIndex);
+    const allChecked =
+      visibleItems.length > 0 && visibleItems.every((i) => i.checked);
 
     return [
       {
@@ -70,23 +127,20 @@ export default function page() {
             onChange={(e) => {
               const checked = e.target.checked;
               setcartItem((prev) =>
-                prev.map((grp, i) =>
-                  i === groupIndex
-                    ? {
-                        ...grp,
-                        items: grp.items.map((itm: any) => ({
-                          ...itm,
-                          checked,
-                        })),
-                      }
-                    : grp
-                )
+                prev.map((grp, i) => {
+                  if (i !== groupIndex) return grp;
+                  const updatedItems = grp.items.map((itm: OrderRow) => {
+                    const isVisible = visibleItems.some((v) => v.id === itm.id);
+                    return isVisible ? { ...itm, checked } : itm;
+                  });
+                  return { ...grp, items: updatedItems };
+                })
               );
             }}
           />
         ),
         width: "60px",
-        sortable: true,
+        sortable: false,
         cell: (row) => (
           <Form.Check
             type="checkbox"
@@ -111,43 +165,46 @@ export default function page() {
           />
         ),
       },
-      {
-        name: "#",
-        selector: (row) => row.id,
-        width: "60px",
-        sortable: true,
-      },
+      { name: "#", selector: (row) => row.id, width: "60px", sortable: true },
       {
         name: "Item",
         selector: (row) => row.itemName,
         sortable: true,
+        grow: 2,
       },
       {
-        name: "Fridge/Freezer",
+        name: "Storage",
         selector: (row) => row.storageType,
         sortable: true,
         center: true,
+        width: "100px",
       },
       {
-        name: "Available Qty",
+        name: "Avail",
         selector: (row) => row.availableQty,
         sortable: true,
         center: true,
+        width: "90px",
       },
       {
-        name: "Recommended Qty",
+        name: "Rec",
         selector: (row) => row.recommendedQty,
         sortable: true,
         center: true,
+        width: "90px",
       },
       {
-        name: "Required Qty",
-        selector: (row) => row.reqQty,
-        sortable: true,
+        name: "Required",
+        width: "140px",
+        center: true,
         cell: (row) => (
           <Form.Control
             type="number"
-            className="text-center"
+            className={`text-center ${
+              row.reqQty !== row.originalReqQty
+                ? "border-warning bg-light-warning"
+                : ""
+            }`}
             value={row.reqQty}
             onChange={(e) => {
               const qty = Math.max(0, Number(e.target.value));
@@ -167,78 +224,94 @@ export default function page() {
           />
         ),
       },
+      { name: "UOM", width: "80px", selector: (row) => `${row.measQty}${row.uom}`, center: true },
       {
-        name: "UOM",
-        width: "100px",
-        selector: (row) => row.uom,
-        cell: (row) => row.uom,
-        center: true,
-      },
-      {
-        name: "More",
-        width: "100px",
+        name: "",
+        width: "60px",
         cell: (row) => (
-          <div>
-            <Dropdown align="end">
-              <Dropdown.Toggle
-                variant="link"
-                className="p-0 border-0 more-toggle"
-              >
-                <Image
-                  src={"/inventorymanagement/more-icon.svg"}
-                  height={24}
-                  width={24}
-                  alt="more-icon"
-                />
-              </Dropdown.Toggle>
-
-              <Dropdown.Menu
-                className="more-menu"
-                renderOnMount
-                popperConfig={{ strategy: "fixed" }}
-              >
-                {/* <Dropdown.Item> Edit </Dropdown.Item>
+          <Dropdown align="end">
+            <Dropdown.Toggle
+              variant="link"
+              className="p-0 border-0 more-toggle"
+            >
+              <Image
+                src={"/inventorymanagement/more-icon.svg"}
+                height={24}
+                width={24}
+                alt="more"
+              />
+            </Dropdown.Toggle>
+            <Dropdown.Menu
+              className="more-menu"
+              renderOnMount
+              popperConfig={{ strategy: "fixed" }}
+            >
+              {cartItem.map((grp, targetIndex) => {
+                if (targetIndex === groupIndex) return null;
+                return (
+                  <Dropdown.Item
+                    key={targetIndex}
+                    onClick={() => handleMoveItem(groupIndex, targetIndex, row)}
+                  >
+                    Move to {getDayName(new Date(grp.config.date))}
+                  </Dropdown.Item>
+                );
+              })}
               <Dropdown.Divider />
-              <Dropdown.Item> Split </Dropdown.Item>
-              <Dropdown.Divider /> */}
-                {cartItem.map((grp, targetIndex) => {
-                  if (targetIndex === groupIndex) return null;
-
-                  return (
-                    <Dropdown.Item
-                      key={targetIndex}
-                      onClick={() =>
-                        handleMoveItem(groupIndex, targetIndex, row)
-                      }
-                    >
-                      Move to {getDayName(new Date(grp.config.date))} delivery
-                    </Dropdown.Item>
-                  );
-                })}
-
-                <Dropdown.Divider />
-                <Dropdown.Item
-                  className="text-danger"
-                  onClick={() => handleRowDelete(groupIndex, row.id)}
-                >
-                  Delete
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-          </div>
+              <Dropdown.Item
+                className="text-danger"
+                onClick={() => handleRowDelete(groupIndex, row.id)}
+              >
+                Delete
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
         ),
         center: true,
       },
     ];
   };
 
+  // --- Bulk Update Logic ---
+  const handleBulkApply = (groupIndex: number) => {
+    const ui = getUiState(groupIndex);
+    const value = Number(ui.bulkValue);
+
+    if (!value && value !== 0) return;
+
+    setcartItem((prev) =>
+      prev.map((grp, i) => {
+        if (i !== groupIndex) return grp;
+
+        const updatedItems = grp.items.map((itm: OrderRow) => {
+          // Only update checked items
+          if (!itm.checked) return itm;
+
+          let delta = 0;
+          if (ui.bulkMode === "PERCENT") {
+            delta = (itm.reqQty * value) / 100;
+          } else {
+            delta = value;
+          }
+
+          let newQty =
+            ui.bulkOperator === "+" ? itm.reqQty + delta : itm.reqQty - delta;
+          newQty = Math.max(0, Math.round(newQty));
+
+          return { ...itm, reqQty: newQty };
+        });
+
+        return { ...grp, items: updatedItems };
+      })
+    );
+
+    // Optional: clear selection after apply?
+    // keeping selection allows iterative updates, so leaving it.
+  };
+
+  // --- Data Loading (Same as before) ---
   const buildPrimaryItemPayload = (items: any) => {
-    let array: {
-      qty: string;
-      meas_qty: string;
-      item_code: string;
-      meas_code: string;
-    }[] = [];
+    let array: any[] = [];
     items?.map((itm: any) => {
       array.push({
         qty: itm.rcomQty,
@@ -249,6 +322,7 @@ export default function page() {
     });
     return array;
   };
+
   useEffect(() => {
     if (!loginDetails || !primaryItemList?.length) return;
     const fetchAll = async () => {
@@ -262,18 +336,25 @@ export default function page() {
           )
         );
 
-        const result = responses.map((res, index) => ({
-          config: primaryItemList[index].config,
-          items: (res.object as any[])?.map((itm: any, i: number) => ({
-            ...itm,
-            id: i + 1,
-            checked: false,
-            reqQty:
-              itm.recommendedQty > itm.availableQty
-                ? Math.max(0, itm.maxQty - itm.availableQty)
-                : Math.max(0, itm.recommendedQty - itm.availableQty),
-          })),
-        }));
+        const result = responses.map((res, index) => {
+          const itemsWithIds = (res.object as any[])?.map(
+            (itm: any, i: number) => {
+              const calculatedReqQty =
+                itm.recommendedQty > itm.availableQty
+                  ? Math.max(0, itm.maxQty - itm.availableQty)
+                  : Math.max(0, itm.recommendedQty - itm.availableQty);
+
+              return {
+                ...itm,
+                id: i + 1,
+                checked: false,
+                reqQty: calculatedReqQty,
+                originalReqQty: calculatedReqQty,
+              };
+            }
+          );
+          return { config: primaryItemList[index].config, items: itemsWithIds };
+        });
         setcartItem(result);
       } catch (err) {
         console.error(err);
@@ -282,15 +363,11 @@ export default function page() {
         const res = await callApi({
           url: `StoreCtl/get-kitchen-assembly-items-list/${loginDetails?.cloudKitchenId}`,
         }).unwrap();
-
-        if (res?.status) {
-          setitemList(res.object as any || []);
-        }
+        if (res?.status) setitemList((res.object as any) || []);
       } catch (error) {
         console.error("Failed to fetch item list", error);
       }
     };
-
     fetchAll();
   }, [loginDetails, primaryItemList]);
 
@@ -374,7 +451,7 @@ export default function page() {
           {
             measurementDesc: itm.uom,
             measurementCode: itm.measCode,
-            qty: 1,
+            qty: itm.measQty,
             rate: 0,
           },
         ],
@@ -390,7 +467,7 @@ export default function page() {
           {
             measurementDesc: itm.uom,
             measurementCode: itm.measCode,
-            qty: 1,
+            qty: itm.measQty,
             rate: 0,
           },
         ],
@@ -432,28 +509,6 @@ export default function page() {
         );
       }
     });
-  };
-
-  const handleHeaderDelete = (groupIndex: number) => {
-    const hasSelected = cartItem[groupIndex]?.items?.some(
-      (itm: any) => itm.checked
-    );
-
-    if (!hasSelected) {
-      alert("Please select item(s)");
-      return;
-    }
-
-    setcartItem((prev) =>
-      prev.map((grp, i) =>
-        i === groupIndex
-          ? {
-              ...grp,
-              items: grp.items.filter((itm: any) => !itm.checked),
-            }
-          : grp
-      )
-    );
   };
 
   const handleBulkMoveToNext = (currentIndex: number) => {
@@ -519,10 +574,7 @@ export default function page() {
     setcartItem((prev) =>
       prev.map((grp, i) =>
         i === groupIndex
-          ? {
-              ...grp,
-              items: grp.items.filter((itm: any) => itm.id !== rowId),
-            }
+          ? { ...grp, items: grp.items.filter((itm: any) => itm.id !== rowId) }
           : grp
       )
     );
@@ -565,35 +617,14 @@ export default function page() {
       return updated;
     });
   };
-  const handleApplyFilter = () => {
-    if (activeGroupIndex === null) return;
-
+  const handleHeaderDelete = (groupIndex: number) => {
     setcartItem((prev) =>
-      prev.map((grp, gIndex) => {
-        if (gIndex !== activeGroupIndex) return grp;
-
-        return {
-          ...grp,
-          items: grp.items.map((itm: any) => {
-            if (itm.storageType?.toLowerCase() !== filterType?.toLowerCase())
-              return itm;
-
-            const percentage = Number(filterValue) || 0;
-            const delta = (itm.reqQty * percentage) / 100;
-
-            let updatedQty =
-              filterAddOrSub === "+" ? itm.reqQty + delta : itm.reqQty - delta;
-
-            return {
-              ...itm,
-              reqQty: Math.max(0, Math.round(updatedQty)),
-            };
-          }),
-        };
-      })
+      prev.map((grp, i) =>
+        i === groupIndex
+          ? { ...grp, items: grp.items.filter((itm: any) => !itm.checked) }
+          : grp
+      )
     );
-
-    setfilterModal(false);
   };
   const handleAddNewItem = () => {
     // if (!selectedItem && !selectedUom) {
@@ -646,6 +677,7 @@ export default function page() {
               reqQty: 0,
               availableQty: 0,
               recommendedQty: 0,
+              originalReqQty: 0,
               checked: false,
             },
           ],
@@ -659,173 +691,212 @@ export default function page() {
 
   return (
     <Container fluid className="p-4">
-      <Row className="mb-3">
+      <Row className="mb-3 justify-content-between">
         <Col className="d-flex align-items-center">
           <Image
             src={"/inventorymanagement/back-icon.svg"}
             height={24}
             width={24}
-            alt={"backicon"}
-            onClick={() => {
-              router.back();
-            }}
+            alt={"back"}
+            onClick={() => router.back()}
+            style={{ cursor: "pointer" }}
           />
           <h3 className="font-24 fw-bold m-0 ms-3">Recommended Cart Items</h3>
         </Col>
-        <Col className="d-flex align-items-center justify-content-end">
-          {/* <div className='border p-1 me-3'>
-          <Image src={"/inventorymanagement/filter-icon.svg"} height={18} width={18} alt="filter"/>
-        </div> */}
+        <Col className="d-flex justify-content-end">
           <Button className="btn-filled" onClick={() => handlePlaceOrder()}>
             Send to Pantry
           </Button>
         </Col>
       </Row>
+
       <Row className="flex-nowrap overflow-auto">
-        {cartItem?.map((cart, groupIndex) => (
-          <Col xs={12} md={6} key={groupIndex}>
-            <div>
-              <div className="d-flex align-items-center justify-content-between bg-gray-light p-3 border">
-                <div>
-                  <h4 className="font-16 text-secondary fw-bold m-0">
-                    {getDayName(new Date(cart.config.date))} Delivery (
-                    {cart.items.length} Items)
-                  </h4>
-                  <p className="m-0 font-13">{formatDate(cart.config.date)}</p>
+        {cartItem?.map((cart, groupIndex) => {
+          const ui = getUiState(groupIndex);
+          const selectedCount = cart.items.filter((i: any) => i.checked).length;
+
+          return (
+            <Col xs={12} md={6} lg={6} key={groupIndex} className="mb-4">
+              <div className="border rounded-3 overflow-hidden">
+                <div className="d-flex align-items-center justify-content-between bg-gray-light p-3 border-bottom">
+                  <div>
+                    <h4 className="font-16 text-secondary fw-bold m-0">
+                      {getDayName(new Date(cart.config.date))} Delivery
+                    </h4>
+                    <p className="m-0 font-13">
+                      {formatDate(cart.config.date)}
+                    </p>
+                  </div>
+                  <div className="d-flex gap-2">
+                    <div
+                      className={`border rounded-2 p-2 ${
+                        ui.viewFilter === "UNCHANGED"
+                          ? "primary-border bg-primary-light"
+                          : "bg-white"
+                      }`}
+                      style={{ cursor: "pointer" }}
+                      title="View Unchanged Items"
+                      onClick={() =>
+                        updateUiState(groupIndex, {
+                          viewFilter:
+                            ui.viewFilter === "UNCHANGED" ? "ALL" : "UNCHANGED",
+                        })
+                      }
+                    >
+                      <span
+                        className={`fw-bold text-muted ${
+                          ui.viewFilter === "UNCHANGED" ? "text-primary" : ""
+                        }`}
+                        style={{ fontSize: "12px" }}
+                      >
+                        Unchanged
+                      </span>
+                    </div>
+
+                    <div
+                      className={`border rounded-2 p-2 ${
+                        ui.viewFilter === "ZERO"
+                          ? "primary-border bg-primary-light"
+                          : "bg-white"
+                      }`}
+                      style={{ cursor: "pointer" }}
+                      title="View 0 Qty Items"
+                      onClick={() =>
+                        updateUiState(groupIndex, {
+                          viewFilter: ui.viewFilter === "ZERO" ? "ALL" : "ZERO",
+                        })
+                      }
+                    >
+                      <span
+                        className={`fw-bold text-muted ${
+                          ui.viewFilter === "ZERO" ? "text-primary" : ""
+                        }`}
+                        style={{ fontSize: "12px" }}
+                      >
+                        0 Qty
+                      </span>
+                    </div>
+
+                    <div
+                      className="border rounded-2 p-2 bg-white cursor-pointer"
+                      onClick={() => handleBulkMoveToNext(groupIndex)}
+                    >
+                      <Image
+                        src={"/inventorymanagement/move-icon.svg"}
+                        height={18}
+                        width={18}
+                        alt="move"
+                      />
+                    </div>
+                    <div
+                      className="border rounded-2 p-2 bg-white cursor-pointer"
+                      onClick={() => handleHeaderDelete(groupIndex)}
+                    >
+                      <Image
+                        src={"/inventorymanagement/delete-icon.svg"}
+                        height={18}
+                        width={18}
+                        alt="del"
+                      />
+                    </div>
+                    <div
+                      className="border rounded-2 p-2 bg-white cursor-pointer"
+                      onClick={() => {
+                        setActiveGroupIndex(groupIndex);
+                        setSelectedItem(null);
+                        setnewItemModal(true);
+                      }}
+                    >
+                      <Image
+                        src={"/inventorymanagement/orange-plus.png"}
+                        height={18}
+                        width={18}
+                        alt="plus"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="d-flex">
-                  <div
-                    className="border rounded-2 p-2 me-1 bg-white"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => handleBulkMoveToNext(groupIndex)}
-                  >
-                    <Image
-                      src={"/inventorymanagement/move-icon.svg"}
-                      height={18}
-                      width={18}
-                      alt="move"
-                    />
-                  </div>
-                  <div
-                    className="border rounded-2 p-2 me-1 bg-white"
-                    onClick={() => {
-                      handleHeaderDelete(groupIndex);
-                    }}
-                  >
-                    <Image
-                      src={"/inventorymanagement/delete-icon.svg"}
-                      height={18}
-                      width={18}
-                      alt="del"
-                    />
-                  </div>
-                  <div
-                    className="border rounded-2 p-2 me-1 bg-white"
-                    onClick={() => {
-                      setActiveGroupIndex(groupIndex);
-                      setfilterModal(true);
-                    }}
-                  >
-                    <Image
-                      src={"/inventorymanagement/filter-icon.svg"}
-                      height={18}
-                      width={18}
-                      alt="filter"
-                    />
-                  </div>
-                  <div
-                    className="border rounded-2 p-2 bg-white"
-                    onClick={() => {
-                      setActiveGroupIndex(groupIndex);
-                      setSelectedItem(null);
-                      setnewItemModal(true);
-                    }}
-                  >
-                    <Image
-                      src={"/inventorymanagement/orange-plus.png"}
-                      height={18}
-                      width={18}
-                      alt="plus"
-                    />
-                  </div>
+
+                <div className="bg-white p-2 border-bottom">
+                  <Form.Control
+                    type="search"
+                    placeholder="Search this list..."
+                    className="bg-light border-0"
+                    value={ui.searchText}
+                    onChange={(e) =>
+                      updateUiState(groupIndex, { searchText: e.target.value })
+                    }
+                  />
                 </div>
+
+                {selectedCount > 0 && (
+                  <div className="bg-light-warning p-2 border-bottom d-flex align-items-center gap-2 animate__animated animate__fadeIn">
+                    <span className="font-12 fw-bold text-nowrap">
+                      {selectedCount} Selected:
+                    </span>
+
+                    <Form.Select
+                      size="sm"
+                      style={{ width: "60px" }}
+                      value={ui.bulkOperator}
+                      onChange={(e) =>
+                        updateUiState(groupIndex, {
+                          bulkOperator: e.target.value as any,
+                        })
+                      }
+                    >
+                      <option value="+">+</option>
+                      <option value="-">-</option>
+                    </Form.Select>
+
+                    <InputGroup size="sm">
+                      <Form.Control
+                        type="number"
+                        placeholder="0"
+                        value={ui.bulkValue}
+                        onChange={(e) =>
+                          updateUiState(groupIndex, {
+                            bulkValue: Number(e.target.value),
+                          })
+                        }
+                      />
+                      <Form.Select
+                        style={{ width: "60px", backgroundColor: "#f8f9fa" }}
+                        value={ui.bulkMode}
+                        onChange={(e) =>
+                          updateUiState(groupIndex, {
+                            bulkMode: e.target.value as any,
+                          })
+                        }
+                      >
+                        <option value="VALUE">Qty</option>
+                        <option value="PERCENT">%</option>
+                      </Form.Select>
+                    </InputGroup>
+
+                    <Button
+                      size="sm"
+                      className="bg-primary primary-border"
+                      onClick={() => handleBulkApply(groupIndex)}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )}
+
+                <Datatable<OrderRow>
+                  columns={getColumns(groupIndex)}
+                  rowData={getFilteredItems(cart.items, groupIndex)}
+                  progressPending={isLoading}
+                  pagination={true}
+                />
               </div>
-              <Datatable<OrderRow>
-                columns={getColumns(groupIndex)}
-                rowData={cart?.items}
-                progressPending={isLoading}
-                pagination={true}
-              />
-            </div>
-          </Col>
-        ))}
+            </Col>
+          );
+        })}
       </Row>
-      {/* Modals remain the same */}
-      <Modal
-        show={filterModal}
-        onHide={() => {
-          setfilterModal(false);
-        }}
-        centered
-      >
-        <Modal.Header className="border-0">
-          <Modal.Title className="font-18 fw-bold">Filter</Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="border-0">
-          <Form.Select
-            className="mb-3"
-            value={filterType}
-            onChange={(e) => setfilterType(e.target.value)}
-          >
-            <option value={"Fridge"}>Fridge</option>
-            <option value={"Freezer"}>Freezer</option>
-          </Form.Select>
-          <div className="filter-segment">
-            <div className="segment">
-              <Form.Select
-                className="segment-select"
-                value={filterAddOrSub}
-                onChange={(e) => setfilterAddOrSub(e.target.value)}
-              >
-                <option value="+">+</option>
-                <option value="-">-</option>
-              </Form.Select>
-            </div>
 
-            <div className="segment">
-              <Form.Control
-                type="number"
-                className="segment-input"
-                value={filterValue}
-                onChange={(e) => setfilterValue(Number(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-
-            <div className="segment percent">%</div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer className="border-0">
-          <Button
-            className="btn-outline px-4"
-            onClick={() => {
-              setfilterModal(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button className="btn-filled" onClick={handleApplyFilter}>
-            Apply
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      <Modal
-        show={newItemModal}
-        onHide={() => {
-          setnewItemModal(false);
-        }}
-        centered
-      >
+      <Modal show={newItemModal} onHide={() => setnewItemModal(false)} centered>
         <Modal.Header className="border-0">
           <Modal.Title className="font-18 fw-bold">Add New Entry</Modal.Title>
         </Modal.Header>
@@ -843,7 +914,8 @@ export default function page() {
             <option value={""}>Select Item</option>
             {itemList?.map((itm: any) => (
               <option key={itm.itemCode} value={itm.itemCode}>
-                {itm.itemName} - {itm.measQty}{itm.uom}
+                {itm.itemName} - {itm.measQty}
+                {itm.uom}
               </option>
             ))}
           </Form.Select>
@@ -851,9 +923,7 @@ export default function page() {
         <Modal.Footer className="border-0">
           <Button
             className="btn-outline px-4"
-            onClick={() => {
-              setnewItemModal(false);
-            }}
+            onClick={() => setnewItemModal(false)}
           >
             Cancel
           </Button>
