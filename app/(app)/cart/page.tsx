@@ -56,6 +56,9 @@ export default function Page() {
     (state: RootState) => state.primaryItems
   );
 
+  const CONSOLIDATE_FREEZER_ITEMS = true;
+  const FREEZER_TARGET_DAY_INDEX = 0;
+
   const [cartItem, setcartItem] = useState<any[]>([]);
   const [itemList, setitemList] = useState<any[]>([]);
 
@@ -66,6 +69,46 @@ export default function Page() {
   const [newItemModal, setnewItemModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
+
+  const resequenceItems = (items: OrderRow[]): OrderRow[] => {
+    return items.map((item, index) => ({
+      ...item,
+      id: index + 1,
+    }));
+  };
+
+  const mergeItemsIntoGroup = (
+    existingItems: OrderRow[],
+    itemsToAdd: OrderRow[],
+    targetDateStr: string
+  ) => {
+    const updatedItems = [...existingItems];
+
+    itemsToAdd.forEach((newItem) => {
+      const existingIndex = updatedItems.findIndex(
+        (existing) =>
+          existing.itemCode === newItem.itemCode &&
+          existing.measCode === newItem.measCode &&
+          existing.measQty === newItem.measQty
+      );
+
+      if (existingIndex !== -1) {
+        const existing = updatedItems[existingIndex];
+        updatedItems[existingIndex] = {
+          ...existing,
+          recommendedQty: existing.recommendedQty + newItem.recommendedQty,
+        };
+      } else {
+        updatedItems.push({
+          ...newItem,
+          checked: false,
+          itemDelDate: targetDateStr,
+        });
+      }
+    });
+
+    return resequenceItems(updatedItems);
+  };
 
   const getUiState = (index: number): GroupUiState => {
     return (
@@ -224,7 +267,12 @@ export default function Page() {
           />
         ),
       },
-      { name: "UOM", width: "80px", selector: (row) => `${row.measQty}${row.uom}`, center: true },
+      {
+        name: "UOM",
+        width: "80px",
+        selector: (row) => `${row.measQty}${row.uom}`,
+        center: true,
+      },
       {
         name: "",
         width: "60px",
@@ -284,7 +332,6 @@ export default function Page() {
         if (i !== groupIndex) return grp;
 
         const updatedItems = grp.items.map((itm: OrderRow) => {
-          // Only update checked items
           if (!itm.checked) return itm;
 
           let delta = 0;
@@ -304,12 +351,9 @@ export default function Page() {
         return { ...grp, items: updatedItems };
       })
     );
-
-    // Optional: clear selection after apply?
-    // keeping selection allows iterative updates, so leaving it.
   };
 
-  // --- Data Loading (Same as before) ---
+  // --- Data Loading ---
   const buildPrimaryItemPayload = (items: any) => {
     let array: any[] = [];
     items?.map((itm: any) => {
@@ -336,7 +380,7 @@ export default function Page() {
           )
         );
 
-        const result = responses.map((res, index) => {
+        let result = responses.map((res, index) => {
           const itemsWithIds = (res.object as any[])?.map(
             (itm: any, i: number) => {
               const calculatedReqQty =
@@ -355,6 +399,46 @@ export default function Page() {
           );
           return { config: primaryItemList[index].config, items: itemsWithIds };
         });
+
+        // --- FREEZER CONSOLIDATION LOGIC ---
+        if (
+          CONSOLIDATE_FREEZER_ITEMS &&
+          result.length > FREEZER_TARGET_DAY_INDEX
+        ) {
+          const freezerItems: any[] = [];
+
+          // 1. Collect all freezer items
+          result.forEach((group) => {
+            const groupFreezerItems = group.items.filter(
+              (i: any) => i.storageType === "FREEZER"
+            );
+            freezerItems.push(...groupFreezerItems);
+          });
+
+          // 2. Remove freezer items from all groups
+          result = result.map((group) => ({
+            ...group,
+            items: group.items.filter((i: any) => i.storageType !== "FREEZER"),
+          }));
+
+          // 3. Merge freezer items into the target group
+          const targetGroup = result[FREEZER_TARGET_DAY_INDEX];
+          const targetDateStr = moment(targetGroup.config.date).format(
+            "YYYY-MM-DD"
+          );
+
+          targetGroup.items = mergeItemsIntoGroup(
+            targetGroup.items,
+            freezerItems,
+            targetDateStr
+          );
+        }
+
+        result = result.map((group) => ({
+          ...group,
+          items: resequenceItems(group.items),
+        }));
+
         setcartItem(result);
       } catch (err) {
         console.error(err);
@@ -372,8 +456,6 @@ export default function Page() {
   }, [loginDetails, primaryItemList]);
 
   const buildPlaceOrderPayload = (cartItem: any) => {
-    console.log(loginDetails);
-    console.log(cartItem.config);
     const reqBody = {
       cloudKitchenId: 1,
       name: loginDetails?.userName,
@@ -402,44 +484,17 @@ export default function Page() {
       partnerKitchenId: loginDetails?.cloudKitchenId,
       partnerItemDeliveryList: buildPlaceOrderItemsPayload(cartItem, true),
     };
-    console.log("Place Order Payload: ", reqBody);
     return reqBody;
   };
+
   const buildPlaceOrderItemsPayload = (
     cartItem: any,
     isPartnerItemDeliveryList?: boolean
   ) => {
-    const array: {
-      menuId: number;
-      cgyId: number;
-      itemCode: number;
-      itemType: string;
-      quantity: number;
-      remarks: string;
-      listMeasurements: Array<{
-        qty: number;
-        measurementCode: number;
-        measurementDesc: string;
-        rate: number;
-      }>;
-    }[] = [];
-    const array1: {
-      menuId: number;
-      cgyId: number;
-      itemCode: number;
-      itemType: string;
-      quantity: number;
-      remarks: string;
-      listMeasurements: Array<{
-        qty: number;
-        measurementCode: number;
-        measurementDesc: string;
-        rate: number;
-      }>;
-      itemDelDate: string;
-    }[] = [];
+    const array: any[] = [];
+    const array1: any[] = [];
     cartItem?.items?.map((itm: any) => {
-      if(itm.reqQty<=0) return;
+      if (itm.reqQty <= 0) return;
       array.push({
         menuId: 0,
         cgyId: 0,
@@ -476,10 +531,10 @@ export default function Page() {
     });
     return isPartnerItemDeliveryList ? array1 : array;
   };
+
   const handlePlaceOrder = async () => {
     if (!loginDetails || !cartItem?.length) return;
     cartItem.forEach(async (cItem: any) => {
-      console.log(buildPlaceOrderPayload(cItem));
       try {
         const res = await callApi({
           url: "OrderCtl/place_partner_order",
@@ -512,11 +567,6 @@ export default function Page() {
   };
 
   const handleBulkMoveToNext = (currentIndex: number) => {
-    // if (currentIndex >= cartItem.length - 1) {
-    //   alert("No next delivery available to move items to.");
-    //   return;
-    // }
-
     const currentGroup = cartItem[currentIndex];
     const itemsToMove = currentGroup.items.filter((item: any) => item.checked);
 
@@ -528,57 +578,56 @@ export default function Page() {
     setcartItem((prev) => {
       const newState = [...prev];
 
-      // 1. Remove items from current group
+      // 1. Remove items from current group & Resequence
+      const newSourceItems = newState[currentIndex].items.filter(
+        (item: any) => !item.checked
+      );
       newState[currentIndex] = {
         ...newState[currentIndex],
-        items: newState[currentIndex].items.filter(
-          (item: any) => !item.checked
-        ),
+        items: resequenceItems(newSourceItems),
       };
 
-      // Determine destination index
+      // Determine destination
       const targetIndex =
         currentIndex >= cartItem.length - 1
           ? currentIndex - 1
           : currentIndex + 1;
 
       const destinationGroup = newState[targetIndex];
-      const destinationItems = destinationGroup.items;
+      const targetDateStr = moment(destinationGroup.config.date).format(
+        "YYYY-MM-DD"
+      );
 
-      // Get the date from the destination group's config
-      const targetDate = destinationGroup.config.date;
-
-      const maxId =
-        destinationItems.length > 0
-          ? Math.max(...destinationItems.map((i: any) => i.id))
-          : 0;
-
-      // 2. Add items to destination group with UPDATED DATE
-      const itemsToAdd = itemsToMove.map((item: any, index: number) => ({
-        ...item,
-        checked: false,
-        id: maxId + 1 + index,
-        // Explicitly update the item's date to match the new group's config date
-        itemDelDate: moment(targetDate).format("YYYY-MM-DD"),
-      }));
+      // 2. Add items to destination & Resequence (Handled by mergeItemsIntoGroup)
+      const mergedItems = mergeItemsIntoGroup(
+        destinationGroup.items,
+        itemsToMove,
+        targetDateStr
+      );
 
       newState[targetIndex] = {
         ...newState[targetIndex],
-        items: [...destinationItems, ...itemsToAdd],
+        items: mergedItems,
       };
 
       return newState;
     });
   };
+
   const handleRowDelete = (groupIndex: number, rowId: number) => {
     setcartItem((prev) =>
-      prev.map((grp, i) =>
-        i === groupIndex
-          ? { ...grp, items: grp.items.filter((itm: any) => itm.id !== rowId) }
-          : grp
-      )
+      prev.map((grp, i) => {
+        if (i === groupIndex) {
+          const filteredItems = grp.items.filter(
+            (itm: any) => itm.id !== rowId
+          );
+          return { ...grp, items: resequenceItems(filteredItems) };
+        }
+        return grp;
+      })
     );
   };
+
   const handleMoveItem = (
     fromGroupIndex: number,
     toGroupIndex: number,
@@ -589,58 +638,52 @@ export default function Page() {
     setcartItem((prev) => {
       const updated = [...prev];
 
-      // 1. Remove from source
+      // 1. Remove from source & Resequence
+      const newSourceItems = updated[fromGroupIndex].items.filter(
+        (itm: any) => itm.id !== row.id
+      );
       updated[fromGroupIndex] = {
         ...updated[fromGroupIndex],
-        items: updated[fromGroupIndex].items.filter(
-          (itm: any) => itm.id !== row.id
-        ),
+        items: resequenceItems(newSourceItems),
       };
 
-      // Get the date from the destination group
-      const targetDate = updated[toGroupIndex].config.date;
+      // 2. Add to destination & Resequence
+      const destinationGroup = updated[toGroupIndex];
+      const targetDateStr = moment(destinationGroup.config.date).format(
+        "YYYY-MM-DD"
+      );
+      const mergedItems = mergeItemsIntoGroup(
+        destinationGroup.items,
+        [row],
+        targetDateStr
+      );
 
-      // 2. Add to destination with UPDATED DATE
       updated[toGroupIndex] = {
         ...updated[toGroupIndex],
-        items: [
-          ...updated[toGroupIndex].items,
-          {
-            ...row,
-            checked: false,
-            // Explicitly update the item's date property
-            itemDelDate: moment(targetDate).format("YYYY-MM-DD"),
-          },
-        ],
+        items: mergedItems,
       };
 
       return updated;
     });
   };
+
   const handleHeaderDelete = (groupIndex: number) => {
     setcartItem((prev) =>
-      prev.map((grp, i) =>
-        i === groupIndex
-          ? { ...grp, items: grp.items.filter((itm: any) => !itm.checked) }
-          : grp
-      )
+      prev.map((grp, i) => {
+        if (i === groupIndex) {
+          const filteredItems = grp.items.filter((itm: any) => !itm.checked);
+          return { ...grp, items: resequenceItems(filteredItems) };
+        }
+        return grp;
+      })
     );
   };
-  const handleAddNewItem = () => {
-    // if (!selectedItem && !selectedUom) {
-    //   alert("Please select item and UOM");
-    //   return;
-    // }
 
+  const handleAddNewItem = () => {
     if (!selectedItem) {
       alert("Please select item");
       return;
     }
-
-    // if (!selectedUom) {
-    //   alert("Please select UOM");
-    //   return;
-    // }
 
     if (activeGroupIndex === null) return;
 
@@ -658,29 +701,27 @@ export default function Page() {
           alert("Item already exists in this delivery");
           return grp;
         }
-        const nextId =
-          grp.items.length > 0
-            ? Math.max(...grp.items.map((i: any) => i.id)) + 1
-            : 1;
+        const newItems = [
+          ...grp.items,
+          {
+            id: 0,
+            itemCode: selectedItem.itemCode,
+            itemName: selectedItem.itemName,
+            itemType: selectedItem.itemType,
+            storageType: selectedItem.storageType,
+            uom: `${selectedItem.measQty}${selectedItem.uom}`,
+            measCode: selectedItem.measCode,
+            reqQty: 0,
+            availableQty: 0,
+            recommendedQty: 0,
+            originalReqQty: 0,
+            checked: false,
+          },
+        ];
+
         return {
           ...grp,
-          items: [
-            ...grp.items,
-            {
-              id: nextId,
-              itemCode: selectedItem.itemCode,
-              itemName: selectedItem.itemName,
-              itemType: selectedItem.itemType,
-              storageType: selectedItem.storageType,
-              uom: `${selectedItem.measQty}${selectedItem.uom}`,
-              measCode: selectedItem.measCode,
-              reqQty: 0,
-              availableQty: 0,
-              recommendedQty: 0,
-              originalReqQty: 0,
-              checked: false,
-            },
-          ],
+          items: resequenceItems(newItems),
         };
       })
     );
