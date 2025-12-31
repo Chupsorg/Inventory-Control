@@ -8,6 +8,7 @@ import { useCallApiMutation } from "@/app/store/services/apiSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/app/store";
 import { setActiveOrders, Order } from "@/app/store/features/orderSlice";
+import { exportToExcel } from "@/app/utils/exportToExcel";
 
 interface OrderItem {
   id: number;
@@ -27,6 +28,16 @@ interface OrderDetails {
   orderedItems?: OrderItem[];
   [key: string]: any;
 }
+
+type ExcelRow = {
+  id:number,
+  itemName: string;
+  storageType: string;
+  qty: number;
+  measDesc: string;
+  receivedQty: number;
+  receivedRemark: string;
+};
 
 export default function Page() {
   const router = useRouter();
@@ -303,6 +314,36 @@ export default function Page() {
       console.error("API error", error);
     }
   };
+  const handleDownloadExcel = () => {
+    if (orderDetails?.orderedItems) {
+      let exceldata = orderDetails?.orderedItems?.map((item: any) => {
+        return {
+          id: item.id,
+          itemName: item.itemName,
+          storageType: item.storageType,
+          qty: item.qty,
+          measDesc: `${item.measQty} x ${item.measDesc}`,
+          receivedQty: item.receivedQty,
+          receivedRemark: item.receivedRemark
+        }
+      })
+      exportToExcel([
+        {
+          sheetName: `${orderDetails?.orderId}`,
+          data: exceldata as ExcelRow[],
+          columns: [
+            { header: "#", key: "id" },
+            { header: "Item Name", key: "itemName" },
+            { header: "Freezer/Fridge", key: "storageType" },
+            { header: "Ordered Qty", key: "qty" },
+            { header: "UOM", key: `measDesc` },
+            { header: "Received Qty", key: "receivedQty" },
+            { header: "Remarks", key: "receivedRemark" },
+          ],
+        }
+      ], `Order_Report(${orderDetails?.orderId})`);
+    }
+  }
 
   return (
     <Container fluid className="p-4">
@@ -354,7 +395,15 @@ export default function Page() {
         <Modal.Body>
           <div className="d-flex align-items-center justify-content-between">
             <p className="font-24 fw-bold">Order ID: {orderDetails?.orderId}</p>
-            <div>
+            <div className="d-flex flex-wrap">
+              <Button
+                className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
+                onClick={() => {
+                  handleDownloadExcel();
+                }}
+              >
+                Download excel
+              </Button>
               <Button
                 className="btn-outline text-primary me-2 text-capitalize"
                 onClick={() => {
@@ -384,6 +433,14 @@ export default function Page() {
         </Modal.Body>
         <Modal.Footer className="border-0">
           <div>
+            <Button
+                className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
+                onClick={() => {
+                  handleDownloadExcel();
+                }}
+              >
+                Download excel
+              </Button>
             <Button
               className="btn-outline text-primary me-2 text-capitalize"
               onClick={() => {

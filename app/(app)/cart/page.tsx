@@ -208,12 +208,19 @@ export default function Page() {
           />
         ),
       },
-      { name: "#", selector: (row) => row.id, width: "60px", sortable: true },
+      {
+        name: "#",
+        selector: (row) => row.id,
+        width: "60px",
+        sortable: true,
+        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty ? "text-secondary" : ""}`}>{row.id}</span>
+      },
       {
         name: "Item",
         selector: (row) => row.itemName,
         sortable: true,
         grow: 2,
+        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.itemName}</span>
       },
       {
         name: "Storage",
@@ -221,6 +228,7 @@ export default function Page() {
         sortable: true,
         center: true,
         width: "100px",
+        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.storageType}</span>
       },
       {
         name: "Avail",
@@ -228,6 +236,7 @@ export default function Page() {
         sortable: true,
         center: true,
         width: "90px",
+        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.availableQty}</span>
       },
       {
         name: "Rec",
@@ -235,6 +244,7 @@ export default function Page() {
         sortable: true,
         center: true,
         width: "90px",
+        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.recommendedQty}</span>
       },
       {
         name: "Required",
@@ -245,7 +255,7 @@ export default function Page() {
             type="number"
             className={`text-center ${
               row.reqQty !== row.originalReqQty
-                ? "border-warning bg-light-warning"
+                ? "red-border bg-light-warning"
                 : ""
             }`}
             value={row.reqQty}
@@ -272,6 +282,7 @@ export default function Page() {
         width: "80px",
         selector: (row) => `${row.measQty}${row.uom}`,
         center: true,
+        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{`${row.measQty}${row.uom}`}</span>
       },
       {
         name: "",

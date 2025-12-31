@@ -126,18 +126,26 @@ const PrimaryItemGroup = ({
           />
         ),
       },
-      { name: "#", selector: (row) => row.id, width: "60px", sortable: true },
+      {
+        name: "#",
+        selector: (row) => row.id,
+        width: "60px",
+        sortable: true,
+        cell: (row) => <span className={`${row.itemQty < row.rcomQty ? "text-green" : row.itemQty > row.rcomQty ? "text-secondary" : ""}`}>{row.id}</span>
+      },
       {
         name: "Item",
         selector: (row) => row.itemName,
         width: "250px",
         sortable: true,
+        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.itemName}</span>
       },
       {
         name: "Platform",
         selector: (row) => row.platform,
         sortable: true,
         center: true,
+        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.platform}</span>
       },
       {
         name: "Event",
@@ -145,18 +153,22 @@ const PrimaryItemGroup = ({
         sortable: true,
         width: "250px",
         center: true,
+        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.platform == "Event" ? row.mainItemName : "-"}</span>
+
       },
       {
         name: "Food Type",
         selector: (row) => row.vegType,
         sortable: true,
         center: true,
+        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.vegType}</span>
       },
       {
         name: "Actual Orders",
         selector: (row) => row.itemQty,
         sortable: true,
         center: true,
+        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.itemQty}</span>
       },
       {
         name: "Recommented Orders",
@@ -190,7 +202,7 @@ const PrimaryItemGroup = ({
         name: "UOM",
         width: "100px",
         center: true,
-        cell: (row) => <span>{`${row?.itemMeasQty}${row?.itemMeasDesc}`}</span>,
+        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{`${row?.itemMeasQty}${row?.itemMeasDesc}`}</span>,
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps

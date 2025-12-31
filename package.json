@@ -22,7 +22,8 @@
     "react-redux": "^9.2.0",
     "redux-persist": "^6.0.0",
     "sass": "^1.97.0",
-    "styled-components": "^6.1.19"
+    "styled-components": "^6.1.19",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

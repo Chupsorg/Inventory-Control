@@ -70,6 +70,9 @@ export default function Header() {
           <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer" onClick={()=>{router.push("/assemblyItems"); setOpen(false)}}>
             <h4 className="font-14 fw-bold text-primary text-center m-0">Assembly Items</h4>
           </div>
+          <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer" onClick={()=>{router.push("/stockupload"); setOpen(false)}}>
+            <h4 className="font-14 fw-bold text-primary text-center m-0">Stock Upload</h4>
+          </div>
           <div className="p-3 bg-primary-light border rounded-2 mb-3 cursor-pointer" onClick={()=>{handleLogout()}}>
             <h4 className="font-14 fw-bold text-primary text-center m-0">Logout</h4>
           </div>
