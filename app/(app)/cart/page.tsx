@@ -25,6 +25,7 @@ type OrderRow = {
   itemCode: number;
   itemName: string;
   itemType: string;
+  maxQty: number;
   availableQty: number;
   recommendedQty: number;
   reqQty: number;
@@ -182,7 +183,7 @@ export default function Page() {
             }}
           />
         ),
-        width: "60px",
+        width: "50px",
         sortable: false,
         cell: (row) => (
           <Form.Check
@@ -213,42 +214,99 @@ export default function Page() {
         selector: (row) => row.id,
         width: "60px",
         sortable: true,
-        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty ? "text-secondary" : ""}`}>{row.id}</span>
+        cell: (row) => (
+          <span
+            className={`${
+              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+            }`}
+          >
+            {row.id}
+          </span>
+        ),
       },
       {
         name: "Item",
         selector: (row) => row.itemName,
         sortable: true,
         grow: 2,
-        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.itemName}</span>
+        // width: "100px",
+        cell: (row) => (
+          <span
+            className={`${
+              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+            }`}
+          >
+            {row.itemName}
+          </span>
+        ),
       },
       {
         name: "Storage",
         selector: (row) => row.storageType,
         sortable: true,
         center: true,
-        width: "100px",
-        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.storageType}</span>
+        // width: "100px",
+        cell: (row) => (
+          <span
+            className={`${
+              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+            }`}
+          >
+            {row.storageType}
+          </span>
+        ),
       },
       {
-        name: "Avail",
+        name: "Capacity",
+        selector: (row) => row.maxQty,
+        sortable: true,
+        center: true,
+        // width: "90px",
+        cell: (row) => (
+          <span
+            className={`${
+              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+            }`}
+          >
+            {row.maxQty}
+          </span>
+        ),
+      },
+      {
+        name: "In-Hand",
         selector: (row) => row.availableQty,
         sortable: true,
         center: true,
-        width: "90px",
-        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.availableQty}</span>
+        // width: "90px",
+        cell: (row) => (
+          <span
+            className={`${
+              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+            }`}
+          >
+            {row.availableQty}
+          </span>
+        ),
       },
       {
-        name: "Rec",
+        name: "Recmd Qty",
         selector: (row) => row.recommendedQty,
         sortable: true,
         center: true,
-        width: "90px",
-        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{row.recommendedQty}</span>
+        // width: "90px",
+        cell: (row) => (
+          <span
+            className={`${
+              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+            }`}
+          >
+            {row.recommendedQty}
+          </span>
+        ),
       },
       {
-        name: "Required",
-        width: "140px",
+        name: "Order Qty",
+        // width: "100px",
         center: true,
         cell: (row) => (
           <Form.Control
@@ -279,14 +337,20 @@ export default function Page() {
       },
       {
         name: "UOM",
-        width: "80px",
+        // width: "80px",
         selector: (row) => `${row.measQty}${row.uom}`,
         center: true,
-        cell: (row) => <span className={`${row.reqQty !== row.originalReqQty? "text-secondary": ""}`}>{`${row.measQty}${row.uom}`}</span>
+        cell: (row) => (
+          <span
+            className={`${
+              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+            }`}
+          >{`${row.measQty}${row.uom}`}</span>
+        ),
       },
       {
         name: "",
-        width: "60px",
+        // width: "60px",
         cell: (row) => (
           <Dropdown align="end">
             <Dropdown.Toggle
