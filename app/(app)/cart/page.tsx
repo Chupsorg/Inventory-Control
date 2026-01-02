@@ -46,7 +46,7 @@ type GroupUiState = {
   bulkMode: "PERCENT" | "VALUE";
   bulkOperator: "+" | "-";
   bulkValue: number | "";
-  qtyCondition?: "<" | ">" | "<=" | ">=";
+  qtyCondition?: "<" | ">" | "<=" | ">=" | "=";
   qtyValue?: number | "";
   qtyFilterApplied?: boolean;
 };
@@ -174,6 +174,8 @@ export default function Page() {
           return i.reqQty <= val;
         case ">=":
           return i.reqQty >= val;
+        case "=":
+          return i.reqQty == val;
         default:
           return true;
       }
@@ -1020,6 +1022,7 @@ export default function Page() {
                           <option value="<=">&lt;=</option>
                           <option value=">">&gt;</option>
                           <option value=">=">&gt;=</option>
+                          <option value="=">=</option>
                         </Form.Select>
 
                         <Form.Control
