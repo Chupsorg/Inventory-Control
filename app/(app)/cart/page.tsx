@@ -305,7 +305,7 @@ export default function Page() {
         ),
       },
       {
-        name: "In-Hand",
+        name: "On-hand",
         selector: (row) => row.availableQty,
         sortable: true,
         center: true,
@@ -382,7 +382,7 @@ export default function Page() {
       },
       {
         name: "",
-        // width: "60px",
+        width: "20px",
         cell: (row) => (
           <Dropdown align="end">
             <Dropdown.Toggle
@@ -490,12 +490,11 @@ export default function Page() {
         let result = responses.map((res, index) => {
           const itemsWithIds = (res.object as any[])?.map(
             (itm: any, i: number) => {
-              // itm.availableQty = (index == 0 ? itm.availableQty : 0) as number
+              const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
               const calculatedReqQty =
-                itm.recommendedQty > itm.availableQty
-                  ? Math.max(0, itm.maxQty - itm.availableQty)
-                  : Math.max(0, itm.recommendedQty - itm.availableQty);
-
+                itm.recommendedQty > calculatedAvailableQty
+                  ? Math.max(0, itm.maxQty - calculatedAvailableQty)
+                  : Math.max(0, itm.recommendedQty - calculatedAvailableQty);
               return {
                 ...itm,
                 id: i + 1,
@@ -507,7 +506,7 @@ export default function Page() {
           );
           return { config: primaryItemList[index].config, items: itemsWithIds };
         });
-
+        
         // --- FREEZER CONSOLIDATION LOGIC ---
         if (
           CONSOLIDATE_FREEZER_ITEMS &&
@@ -600,7 +599,7 @@ export default function Page() {
       couponDiscountAmt: 0,
       tips: 0,
       totalOrderAmount: 0,
-      pendingPayment: "Y",
+      pendingPayment: "N",
       entityType: "INTERNAL",
       kitchenLocationId: 0,
       itemList: buildPlaceOrderItemsPayload(cartItem, false),
@@ -669,22 +668,22 @@ export default function Page() {
           alert(
             `Order for ${getDayName(
               new Date(cItem.config.date)
-            )} placed successfully!`
+            )} saved successfully!`
           );
           if (cartItem.indexOf(cItem) === cartItem.length - 1) {
             router.push("/orders");
           }
         } else {
           alert(
-            `Failed to place order for ${getDayName(
+            `Failed to save order for ${getDayName(
               new Date(cItem.config.date)
             )}`
           );
         }
       } catch (error) {
-        console.error("Failed to place order", error);
+        console.error("Failed to save order", error);
         alert(
-          `Error placing order for ${getDayName(new Date(cItem.config.date))}`
+          `Error saving order for ${getDayName(new Date(cItem.config.date))}`
         );
       }
     });

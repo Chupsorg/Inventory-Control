@@ -132,9 +132,7 @@ export default function Page() {
       {
         name: "Delivery Date",
         selector: (order) =>
-          `${order.deliveryDate} (${getDayName(
-            new Date(order.deliveryDate)
-          )})`,
+          `${order.deliveryDate} (${getDayName(new Date(order.deliveryDate))})`,
         sortable: true,
       },
       {
@@ -143,9 +141,9 @@ export default function Page() {
         cell: (order) => (
           <span
             className={`${
-              order.orderStatus === "DELIVERED"
+              order.orderStatus === "WAITING"
                 ? "text-green"
-                : order.orderStatus === "WAITING"
+                : order.orderStatus === "ENTERED"
                 ? "text-secondary"
                 : "text-mute"
             }`}
@@ -183,7 +181,6 @@ export default function Page() {
         name: "Item",
         selector: (row) => row.itemName,
         sortable: true,
-        width: "200px",
       },
       {
         name: "Freezer/Fridge",
@@ -195,12 +192,14 @@ export default function Page() {
         name: "Ordered Qty",
         selector: (row) => row.qty,
         sortable: true,
+        width: "160px",
         center: true,
       },
       {
         name: "UOM",
-        selector: (row) => `${row.measQty} x ${row.measDesc}`,
+        selector: (row) => `${row.measQty}${row.measDesc}`,
         sortable: true,
+        width: "100px",
         center: true,
       },
       {
@@ -222,7 +221,6 @@ export default function Page() {
       {
         name: "Remarks",
         selector: (row) => row.receivedRemark,
-        grow: 2,
         cell: (row) => (
           <Form.Control
             type="text"
@@ -232,6 +230,50 @@ export default function Page() {
             }
           />
         ),
+      },
+    ],
+    [handleItemChange]
+  );
+  const entryOrderDetailColumns: TableColumn<OrderItem>[] = useMemo(
+    () => [
+      {
+        name: "#",
+        selector: (row) => row.id || 0,
+        width: "60px",
+        sortable: true,
+      },
+      {
+        name: "Item",
+        selector: (row) => row.itemName,
+        sortable: true,
+      },
+      {
+        name: "Freezer/Fridge",
+        selector: (row) => row.storageType,
+        sortable: true,
+        center: true,
+      },
+      {
+        name: "Order Qty",
+        selector: (row) => row.qty,
+        center: true,
+        cell: (row) => (
+          <Form.Control
+            type="number"
+            className="text-center"
+            value={row.qty}
+            onChange={(e) =>
+              handleItemChange(row.id, "qty", Number(e.target.value))
+            }
+            style={{ width: "80px" }}
+          />
+        ),
+      },
+      {
+        name: "UOM",
+        selector: (row) => `${row.measQty}${row.measDesc}`,
+        sortable: true,
+        center: true,
       },
     ],
     [handleItemChange]
@@ -352,6 +394,84 @@ export default function Page() {
     }
   }
 
+  const handleCancelOrder = async () => {
+    try {
+      const res = await callApi({
+        url: `OrderCtl/cancel_partner_order/${orderDetails?.orderId}`
+      }).unwrap();
+
+      if (res.status) {
+        alert("Order cancelled successfully!");
+        setShowOrderDetails(false);
+        // Refresh active orders
+        const refreshedRes = await callApi({
+          url: `DeliveryCtl/get-my-orders-list/A`,
+        }).unwrap();
+
+        if (refreshedRes.status) {
+          const updatedData: Order[] =
+            (refreshedRes.object as any)?.map(
+              (order: Order, index: number) => ({
+                ...order,
+                id: index + 1,
+              })
+            ) ?? [];
+          dispatch(setActiveOrders(updatedData));
+        }
+      } else {
+        console.log(res.message);
+      }
+    } catch (error) {
+      console.error("API error", error);
+    }
+  }
+
+  const handleSendToPantry = async () => {
+    const obj = {
+      orderItemId: 0,
+      itemCode: 0,
+      quantity: 0
+    };
+    const arr: typeof obj[] = [];
+    orderDetails?.orderedItems?.forEach((item) => {
+      const newObj = { ...obj };
+      newObj.orderItemId = item.orderItemId;
+      newObj.itemCode = item.itemCode;
+      newObj.quantity = item.qty;
+      arr.push(newObj);
+    });
+    try {
+      let res = await callApi({
+        url: `OrderCtl/update-partner-order-items-qty/${orderDetails?.orderId}/${loginDetails?.cloudKitchenId}`,
+        body: arr as any,
+      }).unwrap();
+
+      if (res.status) {
+        alert("Order placed successfully");
+        setShowOrderDetails(false);
+        // Refresh active orders
+        const refreshedRes = await callApi({
+          url: `DeliveryCtl/get-my-orders-list/A`,
+        }).unwrap();
+
+        if (refreshedRes.status) {
+          const updatedData: Order[] =
+            (refreshedRes.object as any)?.map(
+              (order: Order, index: number) => ({
+                ...order,
+                id: index + 1,
+              })
+            ) ?? [];
+          dispatch(setActiveOrders(updatedData));
+        }
+      } else {
+        console.log(res.message);
+      }
+    } catch (error) {
+      console.error("API error", error);
+    }
+  };
+
   return (
     <Container fluid className="p-4">
       <Row>
@@ -409,7 +529,15 @@ export default function Page() {
                   handleDownloadExcel();
                 }}
               >
-                Download excel
+                Download as excel
+              </Button>
+              <Button
+                className="btn-outline text-primary me-2 text-capitalize"
+                onClick={() => {
+                  handleCancelOrder();
+                }}
+              >
+                Cancel Order
               </Button>
               <Button
                 className="btn-outline text-primary me-2 text-capitalize"
@@ -417,21 +545,31 @@ export default function Page() {
                   setShowOrderDetails(false);
                 }}
               >
-                Cancel
+                Close
               </Button>
               <Button
                 className="btn-filled text-capitalize"
                 onClick={() => {
-                  handleUpdateOrderReceived();
+                  if (orderDetails?.orderStatus == "ENTERED") {
+                    handleSendToPantry();
+                  } else {
+                    handleUpdateOrderReceived();
+                  }
                 }}
               >
-                Apply
+                {orderDetails?.orderStatus == "ENTERED"
+                  ? `Send To Pantry`
+                  : `Save`}
               </Button>
             </div>
           </div>
           <div className="mt-4">
             <Datatable<OrderItem>
-              columns={orderDetailColumns}
+              columns={
+                orderDetails?.orderStatus == "ENTERED"
+                  ? entryOrderDetailColumns
+                  : orderDetailColumns
+              }
               rowData={orderDetails?.orderedItems || []}
               progressPending={isLoading}
               pagination={true}
@@ -441,28 +579,42 @@ export default function Page() {
         <Modal.Footer className="border-0">
           <div>
             <Button
-                className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
-                onClick={() => {
-                  handleDownloadExcel();
-                }}
-              >
-                Download excel
-              </Button>
+              className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
+              onClick={() => {
+                handleDownloadExcel();
+              }}
+            >
+              Download as excel
+            </Button>
+            <Button
+              className="btn-outline text-primary me-2 text-capitalize"
+              onClick={() => {
+                handleCancelOrder();
+              }}
+            >
+              Cancel Order
+            </Button>
             <Button
               className="btn-outline text-primary me-2 text-capitalize"
               onClick={() => {
                 setShowOrderDetails(false);
               }}
             >
-              Cancel
+              Close
             </Button>
             <Button
               className="btn-filled text-capitalize"
               onClick={() => {
-                handleUpdateOrderReceived();
+                if (orderDetails?.orderStatus == "ENTERED") {
+                  handleSendToPantry();
+                } else {
+                  handleUpdateOrderReceived();
+                }
               }}
             >
-              Apply
+              {orderDetails?.orderStatus == "ENTERED"
+                ? `Send To Pantry`
+                : `Save`}
             </Button>
           </div>
         </Modal.Footer>
