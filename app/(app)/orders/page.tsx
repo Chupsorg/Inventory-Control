@@ -125,7 +125,7 @@ export default function Page() {
         name: "Ordered Date",
         selector: (order) =>
           `${order.orderPlacedDate} (${getDayName(
-            new Date(order.orderPlacedDate) as string
+            new Date(order.orderPlacedDate)
           )})`,
         sortable: true,
       },
@@ -133,7 +133,7 @@ export default function Page() {
         name: "Delivery Date",
         selector: (order) =>
           `${order.deliveryDate} (${getDayName(
-            new Date(order.deliveryDate) as string
+            new Date(order.deliveryDate)
           )})`,
         sortable: true,
       },
