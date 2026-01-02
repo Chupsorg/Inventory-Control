@@ -482,7 +482,16 @@ input[type="number"] {
   z-index: 1040;
 }
 
+.custom-tabs .nav-link {
+  color: black !important;
+  border-color: transparent transparent #dee2e6;
+}
 
+.custom-tabs .nav-link.active {
+  color: #DA3753 !important;
+  font-weight: 700;
+  border-color: #dee2e6 #dee2e6 #fff;
+}
 
 
 

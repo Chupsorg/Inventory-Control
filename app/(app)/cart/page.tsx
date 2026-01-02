@@ -490,6 +490,7 @@ export default function Page() {
         let result = responses.map((res, index) => {
           const itemsWithIds = (res.object as any[])?.map(
             (itm: any, i: number) => {
+              itm.availableQty = (index == 0 ? itm.availableQty : 0) as number
               const calculatedReqQty =
                 itm.recommendedQty > itm.availableQty
                   ? Math.max(0, itm.maxQty - itm.availableQty)
@@ -895,7 +896,7 @@ export default function Page() {
         </Col>
         <Col className="d-flex justify-content-end">
           <Button className="btn-filled" onClick={() => handlePlaceOrder()}>
-            Send to Pantry
+            Save
           </Button>
         </Col>
       </Row>
@@ -1017,7 +1018,7 @@ export default function Page() {
                             })
                           }
                         >
-                          <option value="" disabled>{`<,<=,>,>=`}</option>
+                          <option value="" disabled>{`Select`}</option>
                           <option value="<">&lt;</option>
                           <option value="<=">&lt;=</option>
                           <option value=">">&gt;</option>

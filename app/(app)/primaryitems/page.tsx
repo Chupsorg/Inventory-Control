@@ -12,6 +12,8 @@ import {
   Form,
   Modal,
   InputGroup,
+  Tabs,
+  Tab,
 } from "react-bootstrap";
 import Image from "next/image";
 import { TableColumn } from "react-data-table-component";
@@ -21,10 +23,7 @@ import {
   toggleItem,
   updateItemQty,
   setPrimaryItems,
-  // selectAllInGroup, // We replace this with the new specific selector
   bulkUpdateRcomQty,
-  // Import the new actions here.
-  // If you haven't created them yet, you must add them to your slice as shown in Step 1.
   selectSpecificItems,
   applyMathToSelected,
 } from "@/app/store/features/primaryItemsSlice";
@@ -70,7 +69,7 @@ const PrimaryItemGroup = ({
         item.itemName?.toLowerCase().includes(lowerSearch) ||
         item.mainItemName?.toLowerCase().includes(lowerSearch) ||
         item.platform?.toLowerCase().includes(lowerSearch) ||
-        item.vegType?.toLowerCase() == (lowerSearch)
+        item.vegType?.toLowerCase() == lowerSearch
     );
   }, [con.items, searchTerm]);
 
@@ -131,21 +130,57 @@ const PrimaryItemGroup = ({
         selector: (row) => row.id,
         width: "60px",
         sortable: true,
-        cell: (row) => <span className={`${row.itemQty < row.rcomQty ? "text-green" : row.itemQty > row.rcomQty ? "text-secondary" : ""}`}>{row.id}</span>
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.id}
+          </span>
+        ),
       },
       {
         name: "Item",
         selector: (row) => row.itemName,
         width: "250px",
         sortable: true,
-        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.itemName}</span>
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.itemName}
+          </span>
+        ),
       },
       {
         name: "Platform",
         selector: (row) => row.platform,
         sortable: true,
         center: true,
-        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.platform}</span>
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.platform}
+          </span>
+        ),
       },
       {
         name: "Event",
@@ -153,25 +188,60 @@ const PrimaryItemGroup = ({
         sortable: true,
         width: "250px",
         center: true,
-        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.platform == "Event" ? row.mainItemName : "-"}</span>
-
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.platform == "Event" ? row.mainItemName : "-"}
+          </span>
+        ),
       },
       {
         name: "Food Type",
         selector: (row) => row.vegType,
         sortable: true,
         center: true,
-        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.vegType}</span>
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.vegType}
+          </span>
+        ),
       },
       {
         name: "Actual Orders",
         selector: (row) => row.itemQty,
         sortable: true,
         center: true,
-        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{row.itemQty}</span>
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.itemQty}
+          </span>
+        ),
       },
       {
-        name: "Recommented Orders",
+        name: "Recommended Orders",
         selector: (row) => row.rcomQty,
         sortable: true,
         center: true,
@@ -202,7 +272,19 @@ const PrimaryItemGroup = ({
         name: "UOM",
         width: "100px",
         center: true,
-        cell: (row) => <span className={`${row.itemQty < row.rcomQty? "text-green": row.itemQty > row.rcomQty ? "text-secondary": ""}`}>{`${row?.itemMeasQty}${row?.itemMeasDesc}`}</span>,
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {`${row?.itemMeasQty}${row?.itemMeasDesc}`}
+          </span>
+        ),
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -228,7 +310,7 @@ const PrimaryItemGroup = ({
   const checkedCount = con.items.filter((i: any) => i.checked).length;
 
   return (
-    <Col xs={12} md={6}>
+    <Col xs={12} md={12}>
       <div className="d-flex flex-column my-3 p-3 border rounded bg-light">
         {/* Header Section */}
         <div className="d-flex align-items-center justify-content-between mb-3">
@@ -334,6 +416,9 @@ export default function Page() {
   const [operator, setOperator] = useState<"+" | "-">("+");
   const [percentage, setPercentage] = useState<number>(0);
 
+  // State to manage the Active Tab
+  const [key, setKey] = useState<string | number>(0);
+
   const buildPrimaryItemPayload = (cfg: any) => {
     return {
       cloud_kitchen_id: loginDetails?.cloudKitchenId,
@@ -380,6 +465,13 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config, loginDetails]);
 
+  // Ensure first tab is selected once data loads
+  useEffect(() => {
+    if (primaryItemList && primaryItemList.length > 0) {
+      setKey(0);
+    }
+  }, [primaryItemList]);
+
   return (
     <Container fluid className="p-4">
       <Row>
@@ -399,18 +491,6 @@ export default function Page() {
           </div>
         </Col>
         <Col className="d-flex align-items-center justify-content-end">
-          {/* <div className="border p-1 me-3 cursor-pointer">
-            <Image
-              src={"/inventorymanagement/filter-icon.svg"}
-              height={18}
-              width={18}
-              alt="filter"
-              onClick={() => {
-                setfilterModal(true);
-              }}
-              style={{ cursor: "pointer" }}
-            />
-          </div> */}
           <Button
             className="btn-filled"
             onClick={() => {
@@ -421,16 +501,36 @@ export default function Page() {
           </Button>
         </Col>
       </Row>
-      <Row className="flex-nowrap overflow-auto">
-        {primaryItemList?.map((con: any, groupIndex: number) => (
-          <PrimaryItemGroup
-            key={groupIndex}
-            groupIndex={groupIndex}
-            con={con}
-            dispatch={dispatch}
-            isLoading={isLoading}
-          />
-        ))}
+
+      <Row className="mt-3">
+        <Col>
+          <Tabs
+            id="primary-items-tabs"
+            activeKey={key}
+            onSelect={(k) => setKey(k || 0)}
+            className={"mb-3 custom-tabs"}
+            variant="tabs"
+          >
+            {primaryItemList?.map((con: any, groupIndex: number) => (
+              <Tab
+                eventKey={groupIndex}
+                title={`${getDayName(new Date(con.config.date))} (${formatDate(
+                  con.config.date
+                )})`}
+                key={groupIndex}
+              >
+                <Row>
+                  <PrimaryItemGroup
+                    groupIndex={groupIndex}
+                    con={con}
+                    dispatch={dispatch}
+                    isLoading={isLoading}
+                  />
+                </Row>
+              </Tab>
+            ))}
+          </Tabs>
+        </Col>
       </Row>
 
       {/* Global Filter Modal (Retained) */}

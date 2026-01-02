@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/app/store";
 import { setActiveOrders, Order } from "@/app/store/features/orderSlice";
 import { exportToExcel } from "@/app/utils/exportToExcel";
+import { getDayName } from "@/app/utils/properties";
 
 interface OrderItem {
   id: number;
@@ -122,12 +123,18 @@ export default function Page() {
       },
       {
         name: "Ordered Date",
-        selector: (order) => order.orderPlacedDate,
+        selector: (order) =>
+          `${order.orderPlacedDate} (${getDayName(
+            new Date(order.orderPlacedDate) as string
+          )})`,
         sortable: true,
       },
       {
         name: "Delivery Date",
-        selector: (order) => order.deliveryDate,
+        selector: (order) =>
+          `${order.deliveryDate} (${getDayName(
+            new Date(order.deliveryDate) as string
+          )})`,
         sortable: true,
       },
       {
