@@ -54,24 +54,87 @@ const PrimaryItemGroup = ({
   dispatch: any;
   isLoading: boolean;
 }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [qtyOperator, setQtyOperator] = useState<"<" | ">" | "<=" | ">=" | "=" | "">("");
+  const [qtyValue, setQtyValue] = useState<number | "">("");
+  const [isQtyFilterApplied, setIsQtyFilterApplied] = useState(false);
 
   // Local state for the "Quick Bulk Action" on this specific table
   const [localOperator, setLocalOperator] = useState<"+" | "-">("+");
   const [localPercent, setLocalPercent] = useState<number | "">("");
 
+  const suggestions = useMemo(() => {
+    if (!searchInput) return [];
+
+    const lower = searchInput.toLowerCase();
+    const set = new Set<string>();
+
+    con.items.forEach((item: any) => {
+      if (item.itemName?.toLowerCase().includes(lower)) {
+        set.add(item.itemName);
+      }
+      if (item.platform?.toLowerCase().includes(lower)) {
+        set.add(item.platform);
+      }
+      if (item.mainItemName?.toLowerCase().includes(lower)) {
+        set.add(item.mainItemName);
+      }
+      if (item.vegType?.toLowerCase().includes(lower)) {
+        set.add(item.vegType);
+      }
+    });
+
+    return Array.from(set).slice(0, 8); // limit like Cart
+  }, [searchInput, con.items]);
+
   // 1. Filter items based on search term
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return con.items;
-    const lowerSearch = searchTerm.toLowerCase();
-    return con.items.filter(
-      (item: any) =>
-        item.itemName?.toLowerCase().includes(lowerSearch) ||
-        item.mainItemName?.toLowerCase().includes(lowerSearch) ||
-        item.platform?.toLowerCase().includes(lowerSearch) ||
-        item.vegType?.toLowerCase() == lowerSearch
-    );
-  }, [con.items, searchTerm]);
+    let result = con.items;
+
+    if (appliedSearch) {
+      const lower = appliedSearch.toLowerCase();
+
+      result = result.filter((item: any) => {
+        // exact match for vegType
+        if (item.vegType && item.vegType.toLowerCase() === lower) {
+          return true;
+        }
+
+        // partial match for others
+        return (
+          item.itemName?.toLowerCase().includes(lower) ||
+          item.platform?.toLowerCase().includes(lower) ||
+          item.mainItemName?.toLowerCase().includes(lower)
+        );
+      });
+    }
+
+    //Quantity condition filter
+    if (isQtyFilterApplied && qtyOperator && qtyValue !== "") {
+      result = result.filter((item: any) => {
+        const qty = item.itemQty;
+
+        switch (qtyOperator) {
+          case "<":
+            return qty < qtyValue;
+          case ">":
+            return qty > qtyValue;
+          case "<=":
+            return qty <= qtyValue;
+          case ">=":
+            return qty >= qtyValue;
+          case "=":
+            return qty == qtyValue;
+          default:
+            return true;
+        }
+      });
+    }
+
+    return result;
+  }, [con.items,appliedSearch,isQtyFilterApplied,qtyOperator,qtyValue,]);
 
   const isAllVisibleSelected =
     filteredItems.length > 0 &&
@@ -308,7 +371,16 @@ const PrimaryItemGroup = ({
 
   // Calculate how many are checked to show/hide bulk controls
   const checkedCount = con.items.filter((i: any) => i.checked).length;
-
+  useEffect(() => {
+    const handleClickOutside = () => setShowSuggestions(false);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+  useEffect(() => {
+    if (!searchInput) {
+      setAppliedSearch("");
+    }
+  }, [searchInput]);
   return (
     <Col xs={12} md={12}>
       <div className="d-flex flex-column my-3 p-3 border rounded bg-light">
@@ -322,6 +394,62 @@ const PrimaryItemGroup = ({
             <p className="m-0 font-13">
               {formatDate(con.config.date as string)}
             </p>
+          </div>
+          <div>
+            <div className="d-flex align-items-center gap-2 mt-2">
+              <Form.Select
+                size="sm"
+                style={{ width: "80px" }}
+                value={qtyOperator}
+                onChange={(e) =>{
+                  setQtyOperator(e.target.value as "<" | ">" | "<=" | ">=" | "=")
+                  setIsQtyFilterApplied(false)
+                }
+                }
+              >
+                <option value="" disabled>{`Select`}</option>
+                <option value="<">&lt;</option>
+                <option value="<=">&lt;=</option>
+                <option value=">">&gt;</option>
+                <option value=">=">&gt;=</option>
+                <option value="=">=</option>
+              </Form.Select>
+
+              <Form.Control
+                type="number"
+                size="sm"
+                placeholder="0"
+                style={{ width: "140px" }}
+                value={qtyValue}
+                onChange={(e) => {
+                  setQtyValue(Number(e.target.value))
+                  setIsQtyFilterApplied(false)
+                }}
+              />
+
+              {!isQtyFilterApplied ? (
+                <Button
+                  size="sm"
+                  className="btn-filled p-1 font-12"
+                  disabled={!qtyOperator || qtyValue === ""}
+                  onClick={() => setIsQtyFilterApplied(true)}
+                >
+                  Apply
+                </Button>
+              ) : (
+                <span
+                  className="text-primary fw-bold cursor-pointer text-decoration-underline"
+                  onClick={() => {
+                    setQtyOperator("");
+                    setQtyValue("");
+                    setIsQtyFilterApplied(false);
+                  }}
+                >
+                  Clear
+                </span>
+              )}
+            </div>
+
           </div>
         </div>
 
@@ -338,12 +466,37 @@ const PrimaryItemGroup = ({
                   alt="search"
                 />
               </InputGroup.Text>
-              <Form.Control
-                placeholder="Search items, platform, event, food type..."
-                className="border-start-0 ps-0"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <div className="position-relative flex-grow-1">
+                <Form.Control
+                  type="search"
+                  placeholder="Search items, platform, event, food type..."
+                  className="border-start-0 rounded-start-0 ps-0"
+                  value={searchInput}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                />
+
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="position-absolute bg-white border rounded w-100 mt-1 z-3">
+                    {suggestions.map((sug, idx) => (
+                      <div
+                        key={idx}
+                        className="px-3 py-2 cursor-pointer hover-bg"
+                        onClick={() => {
+                          setAppliedSearch(sug);
+                          setSearchInput(sug);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        {sug}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </InputGroup>
           </Col>
 

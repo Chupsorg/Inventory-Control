@@ -490,7 +490,7 @@ export default function Page() {
         let result = responses.map((res, index) => {
           const itemsWithIds = (res.object as any[])?.map(
             (itm: any, i: number) => {
-              itm.availableQty = (index == 0 ? itm.availableQty : 0) as number
+              // itm.availableQty = (index == 0 ? itm.availableQty : 0) as number
               const calculatedReqQty =
                 itm.recommendedQty > itm.availableQty
                   ? Math.max(0, itm.maxQty - itm.availableQty)
@@ -1015,6 +1015,7 @@ export default function Page() {
                           onChange={(e) =>
                             updateUiState(groupIndex, {
                               qtyCondition: e.target.value as any,
+                              qtyFilterApplied:false
                             })
                           }
                         >
@@ -1035,6 +1036,7 @@ export default function Page() {
                           onChange={(e) =>
                             updateUiState(groupIndex, {
                               qtyValue: e.target.value ? Number(e.target.value) : "",
+                              qtyFilterApplied:false
                             })
                           }
                         />
