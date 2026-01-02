@@ -41,10 +41,14 @@ type OrderRow = {
 
 type GroupUiState = {
   searchText: string;
+  searchInput: string;
   viewFilter: "ALL" | "ZERO" | "UNCHANGED";
   bulkMode: "PERCENT" | "VALUE";
   bulkOperator: "+" | "-";
   bulkValue: number | "";
+  qtyCondition?: "<" | ">" | "<=" | ">=";
+  qtyValue?: number | "";
+  qtyFilterApplied?: boolean;
 };
 
 export default function Page() {
@@ -62,6 +66,9 @@ export default function Page() {
 
   const [cartItem, setcartItem] = useState<any[]>([]);
   const [itemList, setitemList] = useState<any[]>([]);
+  const [openSuggestionGroup, setOpenSuggestionGroup] = useState<number | null>(null);
+  const suggestionRef = React.useRef<HTMLDivElement | null>(null);
+
 
   const [groupUiStates, setGroupUiStates] = useState<{
     [key: number]: GroupUiState;
@@ -115,10 +122,14 @@ export default function Page() {
     return (
       groupUiStates[index] || {
         searchText: "",
+        searchInput: "",
         viewFilter: "ALL",
         bulkMode: "VALUE",
         bulkOperator: "+",
         bulkValue: "",
+        qtyCondition: undefined,
+        qtyValue: "",
+        qtyFilterApplied: false,
       }
     );
   };
@@ -149,6 +160,25 @@ export default function Page() {
     } else if (ui.viewFilter === "UNCHANGED") {
       filtered = filtered.filter((i) => i.reqQty === i.originalReqQty);
     }
+
+    if (ui.qtyFilterApplied && ui.qtyCondition && ui.qtyValue !== "") {
+    const val = Number(ui.qtyValue);
+
+    filtered = filtered.filter((i) => {
+      switch (ui.qtyCondition) {
+        case "<":
+          return i.reqQty < val;
+        case ">":
+          return i.reqQty > val;
+        case "<=":
+          return i.reqQty <= val;
+        case ">=":
+          return i.reqQty >= val;
+        default:
+          return true;
+      }
+    });
+  }
 
     return filtered;
   };
@@ -498,9 +528,9 @@ export default function Page() {
 
           // 3. Merge freezer items into the target group
           const targetGroup = result[FREEZER_TARGET_DAY_INDEX];
-          const targetDateStr = moment(targetGroup.config.date).format(
-            "YYYY-MM-DD"
-          );
+          const targetDateStr = targetGroup?.config?.date
+            ? moment(targetGroup.config.date).format("YYYY-MM-DD")
+            : "";
 
           targetGroup.items = mergeItemsIntoGroup(
             targetGroup.items,
@@ -529,6 +559,22 @@ export default function Page() {
     };
     fetchAll();
   }, [loginDetails, primaryItemList]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        suggestionRef.current &&
+        !suggestionRef.current.contains(e.target as Node)
+      ) {
+        setOpenSuggestionGroup(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
 
   const buildPlaceOrderPayload = (cartItem: any) => {
     const reqBody = {
@@ -805,6 +851,32 @@ export default function Page() {
     setnewItemModal(false);
   };
 
+  const getSearchSuggestions = (
+    items: OrderRow[],
+    searchText: string
+  ): string[] => {
+    if (!searchText) return [];
+
+    const lower = searchText.toLowerCase();
+    const set = new Set<string>();
+
+    items.forEach((i) => {
+      if (i.itemName.toLowerCase().includes(lower)) {
+        set.add(i.itemName);
+      }
+
+      if (i.storageType.toLowerCase().includes(lower)) {
+        set.add(i.storageType);
+      }
+
+      if (i.itemCode.toString().includes(lower)) {
+        set.add(i.itemCode.toString());
+      }
+    });
+
+    return Array.from(set).slice(0, 6);
+  };
+
   return (
     <Container fluid className="p-4">
       <Row className="mb-3 justify-content-between">
@@ -843,106 +915,211 @@ export default function Page() {
                       {formatDate(cart.config.date)}
                     </p>
                   </div>
-                  <div className="d-flex gap-2">
-                    <div
-                      className={`border rounded-2 p-2 ${
-                        ui.viewFilter === "UNCHANGED"
-                          ? "primary-border bg-primary-light"
-                          : "bg-white"
-                      }`}
-                      style={{ cursor: "pointer" }}
-                      title="View Unchanged Items"
-                      onClick={() =>
-                        updateUiState(groupIndex, {
-                          viewFilter:
-                            ui.viewFilter === "UNCHANGED" ? "ALL" : "UNCHANGED",
-                        })
-                      }
-                    >
-                      <span
-                        className={`fw-bold text-muted ${
-                          ui.viewFilter === "UNCHANGED" ? "text-primary" : ""
-                        }`}
-                        style={{ fontSize: "12px" }}
-                      >
-                        Unchanged
-                      </span>
-                    </div>
+                  <div className="d-flex flex-column">
+                    <div>
+                      <div className="d-flex gap-2">
+                        <div
+                          className={`border rounded-2 p-2 ${ui.viewFilter === "UNCHANGED"
+                              ? "primary-border bg-primary-light"
+                              : "bg-white"
+                            }`}
+                          style={{ cursor: "pointer" }}
+                          title="View Unchanged Items"
+                          onClick={() =>
+                            updateUiState(groupIndex, {
+                              viewFilter:
+                                ui.viewFilter === "UNCHANGED" ? "ALL" : "UNCHANGED",
+                            })
+                          }
+                        >
+                          <span
+                            className={`fw-bold text-muted ${ui.viewFilter === "UNCHANGED" ? "text-primary" : ""
+                              }`}
+                            style={{ fontSize: "12px" }}
+                          >
+                            Unchanged
+                          </span>
+                        </div>
 
-                    <div
-                      className={`border rounded-2 p-2 ${
-                        ui.viewFilter === "ZERO"
-                          ? "primary-border bg-primary-light"
-                          : "bg-white"
-                      }`}
-                      style={{ cursor: "pointer" }}
-                      title="View 0 Qty Items"
-                      onClick={() =>
-                        updateUiState(groupIndex, {
-                          viewFilter: ui.viewFilter === "ZERO" ? "ALL" : "ZERO",
-                        })
-                      }
-                    >
-                      <span
-                        className={`fw-bold text-muted ${
-                          ui.viewFilter === "ZERO" ? "text-primary" : ""
-                        }`}
-                        style={{ fontSize: "12px" }}
-                      >
-                        0 Qty
-                      </span>
-                    </div>
+                        <div
+                          className={`border rounded-2 p-2 ${ui.viewFilter === "ZERO"
+                              ? "primary-border bg-primary-light"
+                              : "bg-white"
+                            }`}
+                          style={{ cursor: "pointer" }}
+                          title="View 0 Qty Items"
+                          onClick={() =>
+                            updateUiState(groupIndex, {
+                              viewFilter: ui.viewFilter === "ZERO" ? "ALL" : "ZERO",
+                            })
+                          }
+                        >
+                          <span
+                            className={`fw-bold text-muted ${ui.viewFilter === "ZERO" ? "text-primary" : ""
+                              }`}
+                            style={{ fontSize: "12px" }}
+                          >
+                            0 Qty
+                          </span>
+                        </div>
 
-                    <div
-                      className="border rounded-2 p-2 bg-white cursor-pointer"
-                      onClick={() => handleBulkMoveToNext(groupIndex)}
-                    >
-                      <Image
-                        src={"/inventorymanagement/move-icon.svg"}
-                        height={18}
-                        width={18}
-                        alt="move"
-                      />
+                        <div
+                          className="border rounded-2 p-2 bg-white cursor-pointer"
+                          onClick={() => handleBulkMoveToNext(groupIndex)}
+                        >
+                          <Image
+                            src={"/inventorymanagement/move-icon.svg"}
+                            height={18}
+                            width={18}
+                            alt="move"
+                          />
+                        </div>
+                        <div
+                          className="border rounded-2 p-2 bg-white cursor-pointer"
+                          onClick={() => handleHeaderDelete(groupIndex)}
+                        >
+                          <Image
+                            src={"/inventorymanagement/delete-icon.svg"}
+                            height={18}
+                            width={18}
+                            alt="del"
+                          />
+                        </div>
+                        <div
+                          className="border rounded-2 p-2 bg-white cursor-pointer"
+                          onClick={() => {
+                            setActiveGroupIndex(groupIndex);
+                            setSelectedItem(null);
+                            setnewItemModal(true);
+                          }}
+                        >
+                          <Image
+                            src={"/inventorymanagement/orange-plus.png"}
+                            height={18}
+                            width={18}
+                            alt="plus"
+                          />
+                        </div>
+
+                      </div>
                     </div>
-                    <div
-                      className="border rounded-2 p-2 bg-white cursor-pointer"
-                      onClick={() => handleHeaderDelete(groupIndex)}
-                    >
-                      <Image
-                        src={"/inventorymanagement/delete-icon.svg"}
-                        height={18}
-                        width={18}
-                        alt="del"
-                      />
-                    </div>
-                    <div
-                      className="border rounded-2 p-2 bg-white cursor-pointer"
-                      onClick={() => {
-                        setActiveGroupIndex(groupIndex);
-                        setSelectedItem(null);
-                        setnewItemModal(true);
-                      }}
-                    >
-                      <Image
-                        src={"/inventorymanagement/orange-plus.png"}
-                        height={18}
-                        width={18}
-                        alt="plus"
-                      />
+                    <div>
+                      <div className="d-flex align-items-center gap-2 mt-2">
+                        <Form.Select
+                          size="sm"
+                          style={{ width: "80px" }}
+                          value={ui.qtyCondition || ""}
+                          onChange={(e) =>
+                            updateUiState(groupIndex, {
+                              qtyCondition: e.target.value as any,
+                            })
+                          }
+                        >
+                          <option value="" disabled>{`<,<=,>,>=`}</option>
+                          <option value="<">&lt;</option>
+                          <option value="<=">&lt;=</option>
+                          <option value=">">&gt;</option>
+                          <option value=">=">&gt;=</option>
+                        </Form.Select>
+
+                        <Form.Control
+                          type="number"
+                          size="sm"
+                          placeholder="0"
+                          style={{ width: "140px" }}
+                          value={ui.qtyValue}
+                          onChange={(e) =>
+                            updateUiState(groupIndex, {
+                              qtyValue: e.target.value ? Number(e.target.value) : "",
+                            })
+                          }
+                        />
+
+                        {!ui.qtyFilterApplied ? (
+                          <Button
+                            size="sm"
+                            className="btn-filled p-1 font-12"
+                            disabled={!ui.qtyCondition || ui.qtyValue === ""}
+                            onClick={() =>
+                              updateUiState(groupIndex, {
+                                qtyFilterApplied: true,
+                              })
+                            }
+                          >
+                            Apply
+                          </Button>
+                        ) : (
+                          <span
+                            className="text-primary fw-bold cursor-pointer text-decoration-underline"
+                            onClick={() =>
+                              updateUiState(groupIndex, {
+                                qtyFilterApplied: false,
+                                qtyCondition: undefined,
+                                qtyValue: "",
+                              })
+                            }
+                          >
+                            Clear
+                          </span>
+                        )}
+                      </div>
+
                     </div>
                   </div>
+                  
                 </div>
 
                 <div className="bg-white p-2 border-bottom">
-                  <Form.Control
-                    type="search"
-                    placeholder="Search this list..."
-                    className="bg-light border-0"
-                    value={ui.searchText}
-                    onChange={(e) =>
-                      updateUiState(groupIndex, { searchText: e.target.value })
-                    }
-                  />
+                  <div
+                    className="position-relative"
+                    ref={openSuggestionGroup === groupIndex ? suggestionRef : null}
+                  >
+                    <Form.Control
+                      type="search"
+                      placeholder="Search this list..."
+                      className="bg-light border-0"
+                      value={ui.searchInput}
+                      autoComplete="off"
+                      onFocus={() => setOpenSuggestionGroup(groupIndex)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateUiState(groupIndex, {
+                          searchInput: val,
+                          searchText: val ? ui.searchText : "",
+                        });
+                        setOpenSuggestionGroup(groupIndex);
+                      }}
+                    />
+
+                    {openSuggestionGroup === groupIndex && ui.searchInput && (
+                      (() => {
+                        const suggestions = getSearchSuggestions(
+                          cart.items,
+                          ui.searchInput
+                        );
+
+                        if (!suggestions.length) return null;
+
+                        return (
+                          <div className="position-absolute bg-white border rounded shadow-sm w-100 mt-1 z-3">
+                            {suggestions.map((text, idx) => (
+                              <div
+                                key={idx}
+                                className="px-3 py-2 cursor-pointer hover-bg-light"
+                                onClick={() => {
+                                  updateUiState(groupIndex, { searchText: text,searchInput: text });
+                                  setOpenSuggestionGroup(null);
+                                }}
+                              >
+                                {text}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                  
                 </div>
 
                 {selectedCount > 0 && (
