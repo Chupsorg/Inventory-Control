@@ -148,7 +148,7 @@ export default function Page() {
                 : "text-mute"
             }`}
           >
-            {order.orderStatus}
+            {order.orderStatus === "ENTERED" ? "SAVED" : order.orderStatus}
           </span>
         ),
       },

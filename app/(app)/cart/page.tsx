@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react"; // Added useMemo
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/app/store";
 import { useCallApiMutation } from "@/app/store/services/apiSlice";
@@ -66,9 +66,10 @@ export default function Page() {
 
   const [cartItem, setcartItem] = useState<any[]>([]);
   const [itemList, setitemList] = useState<any[]>([]);
-  const [openSuggestionGroup, setOpenSuggestionGroup] = useState<number | null>(null);
+  const [openSuggestionGroup, setOpenSuggestionGroup] = useState<number | null>(
+    null
+  );
   const suggestionRef = React.useRef<HTMLDivElement | null>(null);
-
 
   const [groupUiStates, setGroupUiStates] = useState<{
     [key: number]: GroupUiState;
@@ -76,7 +77,20 @@ export default function Page() {
 
   const [newItemModal, setnewItemModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [itemSearchText, setItemSearchText] = useState("");
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
+
+  const filteredItemList = useMemo(() => {
+    const search = itemSearchText.toLowerCase().trim();
+
+    if (!search) return itemList;
+
+    return itemList.filter((itm: any) => {
+      const name = (itm.itemName || "").toString().toLowerCase();
+      const code = (itm.itemCode || "").toString().toLowerCase();
+      return name.includes(search) || code.includes(search);
+    });
+  }, [itemList, itemSearchText]);
 
   const resequenceItems = (items: OrderRow[]): OrderRow[] => {
     return items.map((item, index) => ({
@@ -162,26 +176,25 @@ export default function Page() {
     }
 
     if (ui.qtyFilterApplied && ui.qtyCondition && ui.qtyValue !== "") {
-    const val = Number(ui.qtyValue);
+      const val = Number(ui.qtyValue);
 
-    filtered = filtered.filter((i) => {
-      switch (ui.qtyCondition) {
-        case "<":
-          return i.reqQty < val;
-        case ">":
-          return i.reqQty > val;
-        case "<=":
-          return i.reqQty <= val;
-        case ">=":
-          return i.reqQty >= val;
-        case "=":
-          return i.reqQty == val;
-        default:
-          return true;
-      }
-    });
-  }
-
+      filtered = filtered.filter((i) => {
+        switch (ui.qtyCondition) {
+          case "<":
+            return i.reqQty < val;
+          case ">":
+            return i.reqQty > val;
+          case "<=":
+            return i.reqQty <= val;
+          case ">=":
+            return i.reqQty >= val;
+          case "=":
+            return i.reqQty == val;
+          default:
+            return true;
+        }
+      });
+    }
     return filtered;
   };
 
@@ -261,7 +274,6 @@ export default function Page() {
         selector: (row) => row.itemName,
         sortable: true,
         grow: 2,
-        // width: "100px",
         cell: (row) => (
           <span
             className={`${
@@ -277,7 +289,6 @@ export default function Page() {
         selector: (row) => row.storageType,
         sortable: true,
         center: true,
-        // width: "100px",
         cell: (row) => (
           <span
             className={`${
@@ -293,7 +304,6 @@ export default function Page() {
         selector: (row) => row.maxQty,
         sortable: true,
         center: true,
-        // width: "90px",
         cell: (row) => (
           <span
             className={`${
@@ -309,7 +319,6 @@ export default function Page() {
         selector: (row) => row.availableQty,
         sortable: true,
         center: true,
-        // width: "90px",
         cell: (row) => (
           <span
             className={`${
@@ -325,7 +334,6 @@ export default function Page() {
         selector: (row) => row.recommendedQty,
         sortable: true,
         center: true,
-        // width: "90px",
         cell: (row) => (
           <span
             className={`${
@@ -338,7 +346,6 @@ export default function Page() {
       },
       {
         name: "Order Qty",
-        // width: "100px",
         center: true,
         cell: (row) => (
           <Form.Control
@@ -369,7 +376,6 @@ export default function Page() {
       },
       {
         name: "UOM",
-        // width: "80px",
         selector: (row) => `${row.measQty}${row.uom}`,
         center: true,
         cell: (row) => (
@@ -377,7 +383,9 @@ export default function Page() {
             className={`${
               row.reqQty !== row.originalReqQty ? "text-secondary" : ""
             }`}
-          >{`${row.measQty}${row.uom}`}</span>
+          >
+            {`${row.measQty}${row.uom}`}
+          </span>
         ),
       },
       {
@@ -427,43 +435,36 @@ export default function Page() {
     ];
   };
 
-  // --- Bulk Update Logic ---
   const handleBulkApply = (groupIndex: number) => {
     const ui = getUiState(groupIndex);
     const value = Number(ui.bulkValue);
-
     if (!value && value !== 0) return;
 
     setcartItem((prev) =>
       prev.map((grp, i) => {
         if (i !== groupIndex) return grp;
-
         const updatedItems = grp.items.map((itm: OrderRow) => {
           if (!itm.checked) return itm;
-
           let delta = 0;
           if (ui.bulkMode === "PERCENT") {
             delta = (itm.reqQty * value) / 100;
           } else {
             delta = value;
           }
-
           let newQty =
             ui.bulkOperator === "+" ? itm.reqQty + delta : itm.reqQty - delta;
           newQty = Math.max(0, Math.round(newQty));
-
           return { ...itm, reqQty: newQty };
         });
-
         return { ...grp, items: updatedItems };
       })
     );
   };
-
-  // --- Data Loading ---
+  
   const buildPrimaryItemPayload = (items: any) => {
     let array: any[] = [];
     items?.map((itm: any) => {
+      if(itm.rcomQty <= 0) return;
       array.push({
         qty: itm.rcomQty,
         meas_qty: itm.itemMeasQty,
@@ -506,34 +507,26 @@ export default function Page() {
           );
           return { config: primaryItemList[index].config, items: itemsWithIds };
         });
-        
-        // --- FREEZER CONSOLIDATION LOGIC ---
+
         if (
           CONSOLIDATE_FREEZER_ITEMS &&
           result.length > FREEZER_TARGET_DAY_INDEX
         ) {
           const freezerItems: any[] = [];
-
-          // 1. Collect all freezer items
           result.forEach((group) => {
             const groupFreezerItems = group.items.filter(
               (i: any) => i.storageType === "FREEZER"
             );
             freezerItems.push(...groupFreezerItems);
           });
-
-          // 2. Remove freezer items from all groups
           result = result.map((group) => ({
             ...group,
             items: group.items.filter((i: any) => i.storageType !== "FREEZER"),
           }));
-
-          // 3. Merge freezer items into the target group
           const targetGroup = result[FREEZER_TARGET_DAY_INDEX];
           const targetDateStr = targetGroup?.config?.date
             ? moment(targetGroup.config.date).format("YYYY-MM-DD")
             : "";
-
           targetGroup.items = mergeItemsIntoGroup(
             targetGroup.items,
             freezerItems,
@@ -571,13 +564,10 @@ export default function Page() {
         setOpenSuggestionGroup(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-
+  
   const buildPlaceOrderPayload = (cartItem: any) => {
     const reqBody = {
       cloudKitchenId: 1,
@@ -663,7 +653,6 @@ export default function Page() {
           url: "OrderCtl/place_partner_order",
           body: buildPlaceOrderPayload(cItem) as any,
         }).unwrap();
-
         if (res?.status) {
           alert(
             `Order for ${getDayName(
@@ -692,16 +681,12 @@ export default function Page() {
   const handleBulkMoveToNext = (currentIndex: number) => {
     const currentGroup = cartItem[currentIndex];
     const itemsToMove = currentGroup.items.filter((item: any) => item.checked);
-
     if (itemsToMove.length === 0) {
       alert("Please select items to move.");
       return;
     }
-
     setcartItem((prev) => {
       const newState = [...prev];
-
-      // 1. Remove items from current group & Resequence
       const newSourceItems = newState[currentIndex].items.filter(
         (item: any) => !item.checked
       );
@@ -709,30 +694,20 @@ export default function Page() {
         ...newState[currentIndex],
         items: resequenceItems(newSourceItems),
       };
-
-      // Determine destination
       const targetIndex =
         currentIndex >= cartItem.length - 1
           ? currentIndex - 1
           : currentIndex + 1;
-
       const destinationGroup = newState[targetIndex];
       const targetDateStr = moment(destinationGroup.config.date).format(
         "YYYY-MM-DD"
       );
-
-      // 2. Add items to destination & Resequence (Handled by mergeItemsIntoGroup)
       const mergedItems = mergeItemsIntoGroup(
         destinationGroup.items,
         itemsToMove,
         targetDateStr
       );
-
-      newState[targetIndex] = {
-        ...newState[targetIndex],
-        items: mergedItems,
-      };
-
+      newState[targetIndex] = { ...newState[targetIndex], items: mergedItems };
       return newState;
     });
   };
@@ -757,11 +732,8 @@ export default function Page() {
     row: OrderRow
   ) => {
     if (fromGroupIndex === toGroupIndex) return;
-
     setcartItem((prev) => {
       const updated = [...prev];
-
-      // 1. Remove from source & Resequence
       const newSourceItems = updated[fromGroupIndex].items.filter(
         (itm: any) => itm.id !== row.id
       );
@@ -769,8 +741,6 @@ export default function Page() {
         ...updated[fromGroupIndex],
         items: resequenceItems(newSourceItems),
       };
-
-      // 2. Add to destination & Resequence
       const destinationGroup = updated[toGroupIndex];
       const targetDateStr = moment(destinationGroup.config.date).format(
         "YYYY-MM-DD"
@@ -780,12 +750,7 @@ export default function Page() {
         [row],
         targetDateStr
       );
-
-      updated[toGroupIndex] = {
-        ...updated[toGroupIndex],
-        items: mergedItems,
-      };
-
+      updated[toGroupIndex] = { ...updated[toGroupIndex], items: mergedItems };
       return updated;
     });
   };
@@ -817,29 +782,33 @@ export default function Page() {
         const alreadyExists = grp.items.some(
           (itm: any) =>
             itm.itemCode === selectedItem.itemCode &&
-            itm.measCode === selectedItem.measCode
+            `${itm.measQty}${itm.uom}` === `${selectedItem.measQty}${selectedItem.uom}`
         );
 
         if (alreadyExists) {
-          alert("Item already exists in this delivery");
+          alert(
+            `Item "${selectedItem.itemName}" with size ${selectedItem.measQty}${selectedItem.uom} already exists in this delivery`
+          );
           return grp;
         }
         const newItems = [
-          ...grp.items,
           {
             id: 0,
             itemCode: selectedItem.itemCode,
             itemName: selectedItem.itemName,
             itemType: selectedItem.itemType,
             storageType: selectedItem.storageType,
-            uom: `${selectedItem.measQty}${selectedItem.uom}`,
             measCode: selectedItem.measCode,
+            uom: selectedItem.uom,
+            maxQty: 0,
+            measQty: selectedItem.measQty,
             reqQty: 0,
             availableQty: 0,
             recommendedQty: 0,
             originalReqQty: 0,
             checked: false,
           },
+          ...grp.items,
         ];
 
         return {
@@ -850,6 +819,7 @@ export default function Page() {
     );
 
     setSelectedItem(null);
+    setItemSearchText("");
     setnewItemModal(false);
   };
 
@@ -858,24 +828,13 @@ export default function Page() {
     searchText: string
   ): string[] => {
     if (!searchText) return [];
-
     const lower = searchText.toLowerCase();
     const set = new Set<string>();
-
     items.forEach((i) => {
-      if (i.itemName.toLowerCase().includes(lower)) {
-        set.add(i.itemName);
-      }
-
-      if (i.storageType.toLowerCase().includes(lower)) {
-        set.add(i.storageType);
-      }
-
-      if (i.itemCode.toString().includes(lower)) {
-        set.add(i.itemCode.toString());
-      }
+      if (i.itemName.toLowerCase().includes(lower)) set.add(i.itemName);
+      if (i.storageType.toLowerCase().includes(lower)) set.add(i.storageType);
+      if (i.itemCode.toString().includes(lower)) set.add(i.itemCode.toString());
     });
-
     return Array.from(set).slice(0, 6);
   };
 
@@ -891,7 +850,9 @@ export default function Page() {
             onClick={() => router.back()}
             style={{ cursor: "pointer" }}
           />
-          <h3 className="font-24 fw-bold m-0 ms-3">Recommended Cart Items</h3>
+          <h3 className="font-24 fw-bold m-0 ms-3">
+            Recommended Assembly Cooking Items
+          </h3>
         </Col>
         <Col className="d-flex justify-content-end">
           <Button className="btn-filled" onClick={() => handlePlaceOrder()}>
@@ -921,50 +882,57 @@ export default function Page() {
                     <div>
                       <div className="d-flex gap-2">
                         <div
-                          className={`border rounded-2 p-2 ${ui.viewFilter === "UNCHANGED"
+                          className={`border rounded-2 p-2 ${
+                            ui.viewFilter === "UNCHANGED"
                               ? "primary-border bg-primary-light"
                               : "bg-white"
-                            }`}
+                          }`}
                           style={{ cursor: "pointer" }}
                           title="View Unchanged Items"
                           onClick={() =>
                             updateUiState(groupIndex, {
                               viewFilter:
-                                ui.viewFilter === "UNCHANGED" ? "ALL" : "UNCHANGED",
+                                ui.viewFilter === "UNCHANGED"
+                                  ? "ALL"
+                                  : "UNCHANGED",
                             })
                           }
                         >
                           <span
-                            className={`fw-bold text-muted ${ui.viewFilter === "UNCHANGED" ? "text-primary" : ""
-                              }`}
+                            className={`fw-bold text-muted ${
+                              ui.viewFilter === "UNCHANGED"
+                                ? "text-primary"
+                                : ""
+                            }`}
                             style={{ fontSize: "12px" }}
                           >
                             Unchanged
                           </span>
                         </div>
-
                         <div
-                          className={`border rounded-2 p-2 ${ui.viewFilter === "ZERO"
+                          className={`border rounded-2 p-2 ${
+                            ui.viewFilter === "ZERO"
                               ? "primary-border bg-primary-light"
                               : "bg-white"
-                            }`}
+                          }`}
                           style={{ cursor: "pointer" }}
                           title="View 0 Qty Items"
                           onClick={() =>
                             updateUiState(groupIndex, {
-                              viewFilter: ui.viewFilter === "ZERO" ? "ALL" : "ZERO",
+                              viewFilter:
+                                ui.viewFilter === "ZERO" ? "ALL" : "ZERO",
                             })
                           }
                         >
                           <span
-                            className={`fw-bold text-muted ${ui.viewFilter === "ZERO" ? "text-primary" : ""
-                              }`}
+                            className={`fw-bold text-muted ${
+                              ui.viewFilter === "ZERO" ? "text-primary" : ""
+                            }`}
                             style={{ fontSize: "12px" }}
                           >
                             0 Qty
                           </span>
                         </div>
-
                         <div
                           className="border rounded-2 p-2 bg-white cursor-pointer"
                           onClick={() => handleBulkMoveToNext(groupIndex)}
@@ -1002,7 +970,6 @@ export default function Page() {
                             alt="plus"
                           />
                         </div>
-
                       </div>
                     </div>
                     <div>
@@ -1014,7 +981,7 @@ export default function Page() {
                           onChange={(e) =>
                             updateUiState(groupIndex, {
                               qtyCondition: e.target.value as any,
-                              qtyFilterApplied:false
+                              qtyFilterApplied: false,
                             })
                           }
                         >
@@ -1025,7 +992,6 @@ export default function Page() {
                           <option value=">=">&gt;=</option>
                           <option value="=">=</option>
                         </Form.Select>
-
                         <Form.Control
                           type="number"
                           size="sm"
@@ -1034,12 +1000,13 @@ export default function Page() {
                           value={ui.qtyValue}
                           onChange={(e) =>
                             updateUiState(groupIndex, {
-                              qtyValue: e.target.value ? Number(e.target.value) : "",
-                              qtyFilterApplied:false
+                              qtyValue: e.target.value
+                                ? Number(e.target.value)
+                                : "",
+                              qtyFilterApplied: false,
                             })
                           }
                         />
-
                         {!ui.qtyFilterApplied ? (
                           <Button
                             size="sm"
@@ -1068,16 +1035,16 @@ export default function Page() {
                           </span>
                         )}
                       </div>
-
                     </div>
                   </div>
-                  
                 </div>
 
                 <div className="bg-white p-2 border-bottom">
                   <div
                     className="position-relative"
-                    ref={openSuggestionGroup === groupIndex ? suggestionRef : null}
+                    ref={
+                      openSuggestionGroup === groupIndex ? suggestionRef : null
+                    }
                   >
                     <Form.Control
                       type="search"
@@ -1095,16 +1062,14 @@ export default function Page() {
                         setOpenSuggestionGroup(groupIndex);
                       }}
                     />
-
-                    {openSuggestionGroup === groupIndex && ui.searchInput && (
+                    {openSuggestionGroup === groupIndex &&
+                      ui.searchInput &&
                       (() => {
                         const suggestions = getSearchSuggestions(
                           cart.items,
                           ui.searchInput
                         );
-
                         if (!suggestions.length) return null;
-
                         return (
                           <div className="position-absolute bg-white border rounded shadow-sm w-100 mt-1 z-3">
                             {suggestions.map((text, idx) => (
@@ -1112,7 +1077,10 @@ export default function Page() {
                                 key={idx}
                                 className="px-3 py-2 cursor-pointer hover-bg-light"
                                 onClick={() => {
-                                  updateUiState(groupIndex, { searchText: text,searchInput: text });
+                                  updateUiState(groupIndex, {
+                                    searchText: text,
+                                    searchInput: text,
+                                  });
                                   setOpenSuggestionGroup(null);
                                 }}
                               >
@@ -1121,10 +1089,8 @@ export default function Page() {
                             ))}
                           </div>
                         );
-                      })()
-                    )}
+                      })()}
                   </div>
-                  
                 </div>
 
                 {selectedCount > 0 && (
@@ -1132,7 +1098,6 @@ export default function Page() {
                     <span className="font-12 fw-bold text-nowrap">
                       {selectedCount} Selected:
                     </span>
-
                     <Form.Select
                       size="sm"
                       style={{ width: "60px" }}
@@ -1146,7 +1111,6 @@ export default function Page() {
                       <option value="+">+</option>
                       <option value="-">-</option>
                     </Form.Select>
-
                     <InputGroup size="sm">
                       <Form.Control
                         type="number"
@@ -1171,7 +1135,6 @@ export default function Page() {
                         <option value="PERCENT">%</option>
                       </Form.Select>
                     </InputGroup>
-
                     <Button
                       size="sm"
                       className="bg-primary primary-border"
@@ -1181,7 +1144,6 @@ export default function Page() {
                     </Button>
                   </div>
                 )}
-
                 <Datatable<OrderRow>
                   columns={getColumns(groupIndex)}
                   rowData={getFilteredItems(cart.items, groupIndex)}
@@ -1194,29 +1156,77 @@ export default function Page() {
         })}
       </Row>
 
-      <Modal show={newItemModal} onHide={() => setnewItemModal(false)} centered>
+      <Modal
+        show={newItemModal}
+        onHide={() => {
+          setnewItemModal(false);
+          setSelectedItem(null);
+          setItemSearchText(""); // Reset search on close
+        }}
+        centered
+      >
         <Modal.Header className="border-0">
           <Modal.Title className="font-18 fw-bold">Add New Entry</Modal.Title>
         </Modal.Header>
         <Modal.Body className="border-0">
-          <Form.Select
-            className="mb-3"
-            value={selectedItem?.itemCode || ""}
-            onChange={(e) => {
-              const item = itemList.find(
-                (i: any) => i.itemCode === Number(e.target.value)
-              );
-              setSelectedItem(item);
-            }}
-          >
-            <option value={""}>Select Item</option>
-            {itemList?.map((itm: any) => (
-              <option key={itm.itemCode} value={itm.itemCode}>
-                {itm.itemName} - {itm.measQty}
-                {itm.uom}
-              </option>
-            ))}
-          </Form.Select>
+          <div className="mb-3">
+            <Form.Control
+              type="search"
+              placeholder="Search item name or code..."
+              value={itemSearchText}
+              onChange={(e) => setItemSearchText(e.target.value)}
+              className="mb-2"
+              autoFocus
+            />
+
+            <div
+              className="border rounded overflow-auto"
+              style={{ maxHeight: "250px" }}
+            >
+              {filteredItemList.length === 0 ? (
+                <div className="p-3 text-center text-muted">No items found</div>
+              ) : (
+                filteredItemList.map((itm: any) => {
+                  // UPDATED: Generate a unique key based on Code + MeasQty + UOM
+                  const uniqueKey = `${itm.itemCode}-${itm.measQty}${itm.uom}`;
+
+                  // UPDATED: Check if this specific variant is the one selected
+                  const isSelected =
+                    selectedItem &&
+                    selectedItem.itemCode === itm.itemCode &&
+                    selectedItem.measQty === itm.measQty &&
+                    selectedItem.uom === itm.uom;
+
+                  return (
+                    <div
+                      key={uniqueKey}
+                      className={`p-2 border-bottom cursor-pointer ${
+                        isSelected ? "bg-primary text-white" : "hover-bg-light"
+                      }`}
+                      onClick={() => setSelectedItem(itm)}
+                    >
+                      <div className="fw-bold">{itm.itemName}</div>
+                      <div
+                        className="font-12"
+                        style={{ opacity: isSelected ? 0.9 : 0.7 }}
+                      >
+                        {/* Display the unique measurement clearly */}
+                        {itm.measQty}
+                        {itm.uom} (Code: {itm.itemCode})
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {selectedItem && (
+            <div className="d-flex align-items-center text-success fw-bold font-14 mt-2">
+              <span className="me-2">✓ Selected:</span>
+              <span>{selectedItem.itemName}</span>
+            </div>
+          )}
         </Modal.Body>
         <Modal.Footer className="border-0">
           <Button
@@ -1225,7 +1235,11 @@ export default function Page() {
           >
             Cancel
           </Button>
-          <Button className="btn-filled" onClick={handleAddNewItem}>
+          <Button
+            className="btn-filled"
+            onClick={handleAddNewItem}
+            disabled={!selectedItem}
+          >
             Add
           </Button>
         </Modal.Footer>

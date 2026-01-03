@@ -15,11 +15,13 @@ interface PrimaryGroup {
 interface PrimaryItemsState {
   list: PrimaryGroup[];
   isFetched: boolean;
+  availableItems: any[];
 }
 
 const initialState: PrimaryItemsState = {
   list: [],
   isFetched: false,
+  availableItems: [],
 };
 
 const primaryItemsSlice = createSlice({
@@ -30,10 +32,15 @@ const primaryItemsSlice = createSlice({
       state.list = action.payload;
       state.isFetched = true;
     },
-
-    toggleItem(state, action: PayloadAction<{ groupIndex: number; itemId: number }>) {
+    setAvailableItems: (state, action) => {
+      state.availableItems = action.payload;
+    },
+    toggleItem(
+      state,
+      action: PayloadAction<{ groupIndex: number; itemId: number }>
+    ) {
       const group = state.list[action.payload.groupIndex];
-      const item = group.items.find(i => i.id === action.payload.itemId);
+      const item = group.items.find((i) => i.id === action.payload.itemId);
       if (item) {
         item.checked = !item.checked;
       }
@@ -55,7 +62,7 @@ const primaryItemsSlice = createSlice({
       action: PayloadAction<{ groupIndex: number; itemId: number; qty: number }>
     ) {
       const group = state.list[action.payload.groupIndex];
-      const item = group.items.find(i => i.id === action.payload.itemId);
+      const item = group.items.find((i) => i.id === action.payload.itemId);
       if (item) {
         item.rcomQty = action.payload.qty;
       }
@@ -71,8 +78,8 @@ const primaryItemsSlice = createSlice({
     ) {
       const { filterType, operator, percentage } = action.payload;
 
-      state.list.forEach(group => {
-        group.items.forEach(item => {
+      state.list.forEach((group) => {
+        group.items.forEach((item) => {
           const isMatch =
             filterType === "online"
               ? item.mainItemName === "Online"
@@ -83,20 +90,18 @@ const primaryItemsSlice = createSlice({
           const base = (item.rcomQty ?? item.itemQty) as number;
           const delta = (base * percentage) / 100;
 
-          const newQty =
-            operator === "+" ? base + delta : base - delta;
+          const newQty = operator === "+" ? base + delta : base - delta;
 
           item.rcomQty = Math.max(0, Math.round(newQty));
         });
       });
     },
 
-
     clearPrimaryItems(state) {
       state.list = [];
       state.isFetched = false;
     },
-    
+
     selectSpecificItems: (state, action) => {
       const { groupIndex, itemIds, checked } = action.payload;
       const group = state.list[groupIndex];
@@ -109,21 +114,47 @@ const primaryItemsSlice = createSlice({
       }
     },
 
-    applyMathToSelected: (state, action) => {
-      const { groupIndex, operator, percentage } = action.payload;
+    applyMathToSelected: (
+      state,
+      action: PayloadAction<{
+        groupIndex: number;
+        operator: "+" | "-";
+        value: number;
+        mode: "PERCENT" | "VALUE";
+      }>
+    ) => {
+      const { groupIndex, operator, value, mode } = action.payload;
       const group = state.list[groupIndex];
+
       if (group) {
         group.items.forEach((item) => {
           if (item.checked) {
-            const factor = percentage / 100;
-            let newQty = item.rcomQty as number;
-            if (operator === "+") {
-              newQty = Math.round(item.rcomQty as number * (1 + factor));
+            const currentQty = (item.rcomQty as number) || 0;
+            let delta = 0;
+            if (mode === "PERCENT") {
+              delta = (currentQty * value) / 100;
             } else {
-              newQty = Math.round(item.rcomQty as number * (1 - factor));
+              delta = value;
             }
-            item.rcomQty = newQty > 0 ? newQty : 0;
+            let newQty = currentQty;
+            if (operator === "+") {
+              newQty = currentQty + delta;
+            } else {
+              newQty = currentQty - delta;
+            }
+
+            item.rcomQty = Math.max(0, Math.round(newQty));
           }
+        });
+      }
+    },
+    addItemToGroup: (state, action) => {
+      const { groupIndex, item } = action.payload;
+      if (state.list[groupIndex]) {
+        state.list[groupIndex].items.unshift(item);
+
+        state.list[groupIndex].items.forEach((itm, index) => {
+          itm.id = index + 1;
         });
       }
     },
@@ -132,6 +163,7 @@ const primaryItemsSlice = createSlice({
 
 export const {
   setPrimaryItems,
+  setAvailableItems,
   toggleItem,
   selectAllInGroup,
   updateItemQty,
@@ -139,6 +171,7 @@ export const {
   clearPrimaryItems,
   selectSpecificItems,
   applyMathToSelected,
+  addItemToGroup,
 } = primaryItemsSlice.actions;
 
 export default primaryItemsSlice.reducer;

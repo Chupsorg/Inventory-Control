@@ -26,6 +26,8 @@ import {
   bulkUpdateRcomQty,
   selectSpecificItems,
   applyMathToSelected,
+  addItemToGroup,
+  setAvailableItems,
 } from "@/app/store/features/primaryItemsSlice";
 
 type OrderRow = {
@@ -48,22 +50,27 @@ const PrimaryItemGroup = ({
   con,
   dispatch,
   isLoading,
+  onAddClick,
 }: {
   groupIndex: number;
   con: any;
   dispatch: any;
   isLoading: boolean;
+  onAddClick: () => void;
 }) => {
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [qtyOperator, setQtyOperator] = useState<"<" | ">" | "<=" | ">=" | "=" | "">("");
+  const [qtyOperator, setQtyOperator] = useState<
+    "<" | ">" | "<=" | ">=" | "=" | ""
+  >("");
   const [qtyValue, setQtyValue] = useState<number | "">("");
   const [isQtyFilterApplied, setIsQtyFilterApplied] = useState(false);
 
   // Local state for the "Quick Bulk Action" on this specific table
   const [localOperator, setLocalOperator] = useState<"+" | "-">("+");
-  const [localPercent, setLocalPercent] = useState<number | "">("");
+  const [bulkValue, setBulkValue] = useState<number | "">("");
+  const [bulkMode, setBulkMode] = useState<"PERCENT" | "VALUE">("VALUE");
 
   const suggestions = useMemo(() => {
     if (!searchInput) return [];
@@ -86,7 +93,7 @@ const PrimaryItemGroup = ({
       }
     });
 
-    return Array.from(set).slice(0, 8); // limit like Cart
+    return Array.from(set).slice(0, 8);
   }, [searchInput, con.items]);
 
   // 1. Filter items based on search term
@@ -97,12 +104,9 @@ const PrimaryItemGroup = ({
       const lower = appliedSearch.toLowerCase();
 
       result = result.filter((item: any) => {
-        // exact match for vegType
         if (item.vegType && item.vegType.toLowerCase() === lower) {
           return true;
         }
-
-        // partial match for others
         return (
           item.itemName?.toLowerCase().includes(lower) ||
           item.platform?.toLowerCase().includes(lower) ||
@@ -111,11 +115,9 @@ const PrimaryItemGroup = ({
       });
     }
 
-    //Quantity condition filter
     if (isQtyFilterApplied && qtyOperator && qtyValue !== "") {
       result = result.filter((item: any) => {
         const qty = item.itemQty;
-
         switch (qtyOperator) {
           case "<":
             return qty < qtyValue;
@@ -134,7 +136,7 @@ const PrimaryItemGroup = ({
     }
 
     return result;
-  }, [con.items,appliedSearch,isQtyFilterApplied,qtyOperator,qtyValue,]);
+  }, [con.items, appliedSearch, isQtyFilterApplied, qtyOperator, qtyValue]);
 
   const isAllVisibleSelected =
     filteredItems.length > 0 &&
@@ -152,16 +154,16 @@ const PrimaryItemGroup = ({
   };
 
   const handleLocalBulkUpdate = () => {
-    if (!localPercent) return;
+    if (!bulkValue) return;
     dispatch(
       applyMathToSelected({
         groupIndex,
         operator: localOperator,
-        percentage: Number(localPercent),
+        value: Number(bulkValue),
+        mode: bulkMode,
       })
     );
-    // Optional: clear input after apply
-    setLocalPercent("");
+    setBulkValue("");
   };
 
   const columns: TableColumn<OrderRow>[] = useMemo(
@@ -241,7 +243,7 @@ const PrimaryItemGroup = ({
                 : ""
             }`}
           >
-            {row.platform}
+            {row.platform ? row.platform : "-"}
           </span>
         ),
       },
@@ -285,7 +287,7 @@ const PrimaryItemGroup = ({
         ),
       },
       {
-        name: "Actual Orders",
+        name: "Previous Orders",
         selector: (row) => row.itemQty,
         sortable: true,
         center: true,
@@ -369,7 +371,6 @@ const PrimaryItemGroup = ({
     checked: item.checked ?? false,
   }));
 
-  // Calculate how many are checked to show/hide bulk controls
   const checkedCount = con.items.filter((i: any) => i.checked).length;
   useEffect(() => {
     const handleClickOutside = () => setShowSuggestions(false);
@@ -401,11 +402,12 @@ const PrimaryItemGroup = ({
                 size="sm"
                 style={{ width: "80px" }}
                 value={qtyOperator}
-                onChange={(e) =>{
-                  setQtyOperator(e.target.value as "<" | ">" | "<=" | ">=" | "=")
-                  setIsQtyFilterApplied(false)
-                }
-                }
+                onChange={(e) => {
+                  setQtyOperator(
+                    e.target.value as "<" | ">" | "<=" | ">=" | "="
+                  );
+                  setIsQtyFilterApplied(false);
+                }}
               >
                 <option value="" disabled>{`Select`}</option>
                 <option value="<">&lt;</option>
@@ -422,8 +424,8 @@ const PrimaryItemGroup = ({
                 style={{ width: "140px" }}
                 value={qtyValue}
                 onChange={(e) => {
-                  setQtyValue(Number(e.target.value))
-                  setIsQtyFilterApplied(false)
+                  setQtyValue(Number(e.target.value));
+                  setIsQtyFilterApplied(false);
                 }}
               />
 
@@ -449,13 +451,12 @@ const PrimaryItemGroup = ({
                 </span>
               )}
             </div>
-
           </div>
         </div>
 
         {/* Search and Bulk Actions Row */}
         <Row className="g-2 align-items-center">
-          {/* Search Bar */}
+          {/* Search Bar + ADD BUTTON */}
           <Col xs={12} md={checkedCount > 0 ? 6 : 12}>
             <InputGroup>
               <InputGroup.Text className="bg-white border-end-0">
@@ -497,6 +498,17 @@ const PrimaryItemGroup = ({
                   </div>
                 )}
               </div>
+              <div
+                className="border rounded-2 ms-2 p-2 bg-white cursor-pointer"
+                onClick={onAddClick}
+              >
+                <Image
+                  src={"/inventorymanagement/orange-plus.png"}
+                  height={18}
+                  width={18}
+                  alt="plus"
+                />
+              </div>
             </InputGroup>
           </Col>
 
@@ -507,6 +519,8 @@ const PrimaryItemGroup = ({
                 <span className="font-12 fw-bold text-nowrap px-2">
                   Selected ({checkedCount}):
                 </span>
+
+                {/* Operator Selector */}
                 <Form.Select
                   size="sm"
                   style={{ width: "60px" }}
@@ -517,20 +531,34 @@ const PrimaryItemGroup = ({
                   <option value="+">+</option>
                   <option value="-">-</option>
                 </Form.Select>
-                <Form.Control
-                  type="number"
+
+                {/* Input with Qty/% Toggle */}
+                <InputGroup
                   size="sm"
-                  placeholder="%"
-                  style={{ width: "60px" }}
-                  value={localPercent}
-                  onChange={(e) => setLocalPercent(Number(e.target.value))}
                   className="me-1"
-                />
+                  style={{ maxWidth: "150px" }}
+                >
+                  <Form.Control
+                    type="number"
+                    placeholder="0"
+                    value={bulkValue}
+                    onChange={(e) => setBulkValue(Number(e.target.value))}
+                  />
+                  <Form.Select
+                    style={{ width: "60px", backgroundColor: "#f8f9fa" }}
+                    value={bulkMode}
+                    onChange={(e: any) => setBulkMode(e.target.value)}
+                  >
+                    <option value="VALUE">Qty</option>
+                    <option value="PERCENT">%</option>
+                  </Form.Select>
+                </InputGroup>
+
                 <Button
                   size="sm"
                   className="btn-filled py-0 font-12"
                   onClick={handleLocalBulkUpdate}
-                  disabled={!localPercent}
+                  disabled={!bulkValue}
                 >
                   Apply
                 </Button>
@@ -560,9 +588,12 @@ export default function Page() {
   const loginDetails = useSelector(
     (state: RootState) => state.auth.login_Details
   );
-  const { list: primaryItemList, isFetched } = useSelector(
-    (state: RootState) => state.primaryItems
-  );
+
+  const {
+    list: primaryItemList,
+    isFetched,
+    availableItems,
+  } = useSelector((state: RootState) => state.primaryItems);
 
   const [filterModal, setfilterModal] = useState(false);
   const [filterType, setFilterType] = useState<"online" | "event">("event");
@@ -571,6 +602,22 @@ export default function Page() {
 
   // State to manage the Active Tab
   const [key, setKey] = useState<string | number>(0);
+  const [newItemModal, setnewItemModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [itemSearchText, setItemSearchText] = useState("");
+  const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
+
+  const filteredItemList = useMemo(() => {
+    const search = itemSearchText.toLowerCase().trim();
+
+    if (!search) return availableItems || [];
+
+    return availableItems.filter((itm: any) => {
+      const name = (itm.itemName || "").toString().toLowerCase();
+      const code = (itm.itemCode || "").toString().toLowerCase();
+      return name.includes(search) || code.includes(search);
+    });
+  }, [availableItems, itemSearchText]);
 
   const buildPrimaryItemPayload = (cfg: any) => {
     return {
@@ -582,41 +629,86 @@ export default function Page() {
     };
   };
 
+  const handleAddNewItem = () => {
+    if (!selectedItem || activeGroupIndex === null) return;
+
+    const newItem = {
+      id: 0,
+      itemName: selectedItem.itemName,
+      itemCode: selectedItem.itemCode,
+      mainItemCode: 0,
+      mainItemName: "",
+      vegType: selectedItem.vegType || "Veg",
+      platform: "",
+      itemQty: 0,
+      rcomQty: 0,
+      UOM: selectedItem.uom,
+      itemMeasCode: selectedItem.measCode,
+      itemMeasQty: selectedItem.qty,
+      itemMeasDesc: selectedItem.uom,
+      checked: false,
+    };
+
+    dispatch(addItemToGroup({ groupIndex: activeGroupIndex, item: newItem }));
+
+    // Reset and close
+    setSelectedItem(null);
+    setnewItemModal(false);
+    setItemSearchText("");
+  };
+
   useEffect(() => {
     if (!loginDetails || !config?.length) return;
 
-    if (isFetched) return;
-
     const fetchAll = async () => {
-      try {
-        const responses = await Promise.all(
-          config.map((cfg: any) =>
-            callApi({
-              url: "StoreCtl/get-inventory-primary-items-list",
-              body: buildPrimaryItemPayload(cfg) as any,
-            }).unwrap()
-          )
-        );
+      // 1. Fetch Primary Items (Main Table) if not yet fetched
+      if (!isFetched) {
+        try {
+          const responses = await Promise.all(
+            config.map((cfg: any) =>
+              callApi({
+                url: "StoreCtl/get-inventory-primary-items-list",
+                body: buildPrimaryItemPayload(cfg) as any,
+              }).unwrap()
+            )
+          );
 
-        const result = responses.map((res, index) => ({
-          config: config[index],
-          items: (res.object as any)?.map((itm: any, i: number) => ({
-            ...itm,
-            id: i + 1,
-            checked: false,
-            rcomQty: itm.itemQty,
-          })),
-        }));
+          const result = responses.map((res, index) => ({
+            config: config[index],
+            items: (res.object as any)?.map((itm: any, i: number) => ({
+              ...itm,
+              id: i + 1,
+              checked: false,
+              rcomQty: itm.itemQty,
+            })),
+          }));
 
-        dispatch(setPrimaryItems(result as any));
-      } catch (err) {
-        console.error(err);
+          dispatch(setPrimaryItems(result as any));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      // 2. Fetch Available/Kitchen Items (Dropdown) if empty
+      // We check availableItems.length so we don't re-fetch if they exist
+      if (!availableItems || availableItems.length === 0) {
+        try {
+          const res = await callApi({
+            url: `StoreCtl/get-kitchen-primary-items-list/${loginDetails?.cloudKitchenId}`,
+          }).unwrap();
+          if (res?.status) {
+            // Dispatch to Redux store instead of local state
+            dispatch(setAvailableItems((res.object as any) || []));
+          }
+        } catch (error) {
+          console.error("Failed to fetch item list", error);
+        }
       }
     };
 
     fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config, loginDetails]);
+  }, [config, loginDetails, isFetched, availableItems?.length]);
 
   // Ensure first tab is selected once data loads
   useEffect(() => {
@@ -640,7 +732,9 @@ export default function Page() {
               }}
               style={{ cursor: "pointer" }}
             />
-            <span className="font-24 fw-bold ms-3">Primary Items</span>
+            <span className="font-24 fw-bold ms-3">
+              Sales Projections Of Primary Items
+            </span>
           </div>
         </Col>
         <Col className="d-flex align-items-center justify-content-end">
@@ -678,6 +772,10 @@ export default function Page() {
                     con={con}
                     dispatch={dispatch}
                     isLoading={isLoading}
+                    onAddClick={() => {
+                      setActiveGroupIndex(groupIndex);
+                      setnewItemModal(true);
+                    }}
                   />
                 </Row>
               </Tab>
@@ -686,7 +784,7 @@ export default function Page() {
         </Col>
       </Row>
 
-      {/* Global Filter Modal (Retained) */}
+      {/* Global Filter Modal */}
       <Modal
         show={filterModal}
         onHide={() => {
@@ -767,6 +865,93 @@ export default function Page() {
             }}
           >
             Apply
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* New Item Modal */}
+      <Modal
+        show={newItemModal}
+        onHide={() => {
+          setnewItemModal(false);
+          setSelectedItem(null);
+          setItemSearchText("");
+        }}
+        centered
+      >
+        <Modal.Header className="border-0">
+          <Modal.Title className="font-18 fw-bold">Add New Item</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="border-0">
+          <div className="mb-3">
+            <Form.Control
+              type="search"
+              placeholder="Search item name or code..."
+              value={itemSearchText}
+              onChange={(e) => setItemSearchText(e.target.value)}
+              className="mb-2"
+              autoFocus
+            />
+
+            <div
+              className="border rounded overflow-auto"
+              style={{ maxHeight: "250px" }}
+            >
+              {filteredItemList.length === 0 ? (
+                <div className="p-3 text-center text-muted">No items found</div>
+              ) : (
+                filteredItemList.map((itm: any) => {
+                  const uniqueKey = `${itm.itemCode}-${itm.measQty}${itm.uom}`;
+
+                  const isSelected =
+                    selectedItem &&
+                    selectedItem.itemCode === itm.itemCode &&
+                    selectedItem.measQty === itm.measQty &&
+                    selectedItem.uom === itm.uom;
+
+                  return (
+                    <div
+                      key={uniqueKey}
+                      className={`p-2 border-bottom cursor-pointer ${
+                        isSelected ? "bg-primary text-white" : "hover-bg-light"
+                      }`}
+                      onClick={() => setSelectedItem(itm)}
+                    >
+                      <div className="fw-bold">{itm.itemName}</div>
+                      <div
+                        className="font-12"
+                        style={{ opacity: isSelected ? 0.9 : 0.7 }}
+                      >
+                        {itm.qty}
+                        {itm.uom} (ItemCode: {itm.itemCode})
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {selectedItem && (
+            <div className="d-flex align-items-center text-success fw-bold font-14 mt-2">
+              <span className="me-2">✓ Selected:</span>
+              <span>{selectedItem.itemName}</span>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0">
+          <Button
+            className="btn-outline px-4"
+            onClick={() => setnewItemModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="btn-filled"
+            onClick={handleAddNewItem}
+            disabled={!selectedItem}
+          >
+            Add
           </Button>
         </Modal.Footer>
       </Modal>
