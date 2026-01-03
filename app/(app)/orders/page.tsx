@@ -84,7 +84,7 @@ export default function Page() {
     },
     []
   );
-  
+
   const handleGetOrderDetails = useCallback(
     async (order: Order) => {
       try {
@@ -99,7 +99,7 @@ export default function Page() {
                 ...item,
                 id: index + 1,
                 // Ensure fields exist for inputs
-                receivedQty: item.receivedQty ?? item.qty, // Default to ordered qty if null
+                receivedQty: item.receivedQty ?? 0, // Default to ordered qty if null
                 receivedRemark: item.receivedRemark ?? "",
               })
             ) ?? [];
