@@ -9,12 +9,19 @@ import { useCallApiMutation } from "@/app/store/services/apiSlice";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/store";
 
+interface Chef {
+  id: number;
+  preparedBy: string;
+}
+
 interface AssemblyItem {
   id?: number;
   itemCode: number;
   itemName: string;
   uom: string;
   measQty: number;
+  qty?: number;
+  preparedByList: Chef[];
   itemType: string;
   maxQty: number;
   storageType: "FRIDGE" | "FREEZER" | "OTHER";
@@ -27,8 +34,11 @@ export default function Page() {
   const [assemblyItemsList, setAssemblyItemsList] = useState<
     AssemblyItem[] | null
   >(null);
-  const [originalItemsList, setOriginalItemsList] = useState<AssemblyItem[]>([]);
+  const [originalItemsList, setOriginalItemsList] = useState<AssemblyItem[]>(
+    []
+  );
   const [modifiedItems, setModifiedItems] = useState<AssemblyItem[]>([]);
+  const [chefList, setChefList] = useState<Chef[]>([]);
   const [searchText, setSearchText] = useState("");
 
   const loginDetails = useSelector(
@@ -46,8 +56,8 @@ export default function Page() {
 
     return assemblyItemsList.filter((item) => {
       return (
-        item.itemName.toLowerCase().includes(lowerSearch) ||
-        item.itemCode.toString().includes(lowerSearch)
+        (item.itemName && item.itemName.toLowerCase().includes(lowerSearch)) ||
+        (item.itemCode && item.itemCode.toString().includes(lowerSearch))
       );
     });
   }, [assemblyItemsList, searchText]);
@@ -60,9 +70,16 @@ export default function Page() {
         );
         if (!originalItem) return prevModified;
 
+        const isStorageDifferent =
+          newItem.storageType !== originalItem.storageType;
+        const isQtyDifferent = newItem.maxQty !== originalItem.maxQty;
+
+        const oldChefId = originalItem.preparedByList?.[0]?.id;
+        const newChefId = newItem.preparedByList?.[0]?.id;
+        const isChefDifferent = oldChefId !== newChefId;
+
         const isDifferent =
-          newItem.storageType !== originalItem.storageType ||
-          newItem.maxQty !== originalItem.maxQty;
+          isStorageDifferent || isQtyDifferent || isChefDifferent;
 
         const filtered = prevModified.filter((item) => item.id !== newItem.id);
 
@@ -74,6 +91,32 @@ export default function Page() {
       });
     },
     [originalItemsList]
+  );
+
+  const handleSelectChef = useCallback(
+    (id: number | undefined, newValue: string) => {
+      if (!id) return;
+
+      setAssemblyItemsList((prevItems) => {
+        if (!prevItems) return null;
+
+        return prevItems.map((item) => {
+          if (item.id === id) {
+            const selectedChef = chefList.find(
+              (chef) => chef.id === Number(newValue)
+            );
+            const updatedItem = {
+              ...item,
+              preparedByList: selectedChef ? [selectedChef] : [],
+            };
+            updateModifiedList(updatedItem);
+            return updatedItem;
+          }
+          return item;
+        });
+      });
+    },
+    [chefList, updateModifiedList]
   );
 
   const handleStorageChange = useCallback(
@@ -119,6 +162,7 @@ export default function Page() {
     [updateModifiedList]
   );
 
+  // Added chefList and handleSelectChef to dependencies to ensure dropdown populates correctly
   const columns: TableColumn<AssemblyItem>[] = useMemo(
     () => [
       {
@@ -142,6 +186,25 @@ export default function Page() {
         name: "UOM",
         selector: (row) => `${row.measQty} ${row.uom}`,
         sortable: true,
+      },
+      {
+        name: "Prepared By",
+        selector: (row) => row.preparedByList,
+        sortable: true,
+        cell: (row) => (
+          <Form.Select
+            value={row.preparedByList?.[0]?.id || ""}
+            onChange={(e) => handleSelectChef(row.id, e.target.value)}
+            className="cursor-pointer"
+          >
+            <option value="">Select Chef</option>
+            {chefList?.map((chef) => (
+              <option key={chef.id} value={chef.id}>
+                {chef.preparedBy}
+              </option>
+            ))}
+          </Form.Select>
+        ),
       },
       {
         name: "Storage Type",
@@ -170,24 +233,39 @@ export default function Page() {
           <Form.Control
             type="number"
             className={`text-center`}
-            value={row.maxQty}
+            value={row.maxQty ?? ""}
             onChange={(e) => handleMaxQtyChange(row.id, e.target.value)}
           />
         ),
       },
     ],
-    [handleStorageChange, handleMaxQtyChange]
+    [handleStorageChange, handleMaxQtyChange, handleSelectChef, chefList]
   );
 
   useEffect(() => {
     const handleGetAssemblyItems = async () => {
+      // 1. Fetch Chefs
+      try {
+        let res = await callApi({
+          url: `StoreCtl/get-assembly-items-chefs-list`,
+        }).unwrap();
+
+        if (res.status) {
+          setChefList(res.object as Chef[]);
+        } else {
+          // alert(res.message);
+        }
+      } catch (error) {
+        console.error("API error fetching chefs", error);
+      }
+
+      // 2. Fetch Items
       try {
         let res = await callApi({
           url: `StoreCtl/get-kitchen-assembly-items-list/${loginDetails?.cloudKitchenId}`,
         }).unwrap();
 
         if (res.status) {
-          console.log("Assembly Items:", res.object);
           const updatedData: AssemblyItem[] =
             (res.object as AssemblyItem[])?.map(
               (order: AssemblyItem, index: number) => ({
@@ -203,7 +281,7 @@ export default function Page() {
           alert(res.message);
         }
       } catch (error) {
-        console.error("API error", error);
+        console.error("API error fetching items", error);
       }
     };
 
@@ -219,13 +297,12 @@ export default function Page() {
         return;
       }
 
-      const payload = [] as any[];
-
-      (modifiedItems as any)?.map((item: any) => {
-        item.qty = item.measQty;
-        payload.push(item);
-      });
-      console.log("Sending payload:", payload);
+      // Explicitly map payload
+      const payload = modifiedItems.map((item) => ({
+        ...item,
+        qty: item.measQty, // Mapping required by backend
+        chefIdList: item.preparedByList.map(chef => chef.id)
+      }));
 
       let res = await callApi({
         url: `StoreCtl/update-assembly-item-basic-details`,
@@ -234,13 +311,16 @@ export default function Page() {
 
       if (res.status) {
         alert("Assembly items updated successfully.");
-        setOriginalItemsList(JSON.parse(JSON.stringify(assemblyItemsList)));
+        // Update the original list to match the current state on success
+        if (assemblyItemsList) {
+          setOriginalItemsList(JSON.parse(JSON.stringify(assemblyItemsList)));
+        }
         setModifiedItems([]);
       } else {
         alert(res.message);
       }
     } catch (error) {
-      console.error("API error", error);
+      console.error("API error updating items", error);
     }
   };
 

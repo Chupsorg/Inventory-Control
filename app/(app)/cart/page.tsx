@@ -613,6 +613,7 @@ export default function Page() {
         cgyId: 0,
         itemCode: itm.itemCode,
         itemType: itm.itemType,
+        availableQuantity: itm.availableQty,
         quantity: itm.reqQty,
         remarks: "",
         listMeasurements: [
@@ -629,6 +630,7 @@ export default function Page() {
         cgyId: 0,
         itemCode: itm.itemCode,
         itemType: itm.itemType,
+        availableQuantity: itm.availableQty,
         quantity: itm.reqQty,
         remarks: "",
         listMeasurements: [

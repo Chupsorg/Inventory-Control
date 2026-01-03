@@ -21,19 +21,27 @@ interface OrderItem {
   measQty: number;
   measDesc: string;
   orderStatus: string;
+  orderItemId: number;
+  itemCode: number;
+  measCode: number;
+  availableQuantity?: number;
+  preparedByList?: { name: string }[];
   [key: string]: any;
 }
 
 interface OrderDetails {
   orderId?: number;
+  orderStatus?: string;
   orderedItems?: OrderItem[];
   [key: string]: any;
 }
 
 type ExcelRow = {
-  id:number,
+  id: number;
   itemName: string;
   storageType: string;
+  preparedBy: string;
+  availableQuantity: number;
   qty: number;
   measDesc: string;
   receivedQty: number;
@@ -76,38 +84,183 @@ export default function Page() {
     },
     []
   );
+  
+  const handleGetOrderDetails = useCallback(
+    async (order: Order) => {
+      try {
+        const res = await callApi({
+          url: `DeliveryCtl/get-order-details/${order?.orderId}`,
+        }).unwrap();
 
-  const handleGetOrderDetails = async (order: any) => {
+        if (res.status) {
+          const updatedData: OrderItem[] =
+            (res.object as any)?.orderedItems?.map(
+              (item: any, index: number) => ({
+                ...item,
+                id: index + 1,
+                // Ensure fields exist for inputs
+                receivedQty: item.receivedQty ?? item.qty, // Default to ordered qty if null
+                receivedRemark: item.receivedRemark ?? "",
+              })
+            ) ?? [];
+
+          const modifiedOrder = {
+            ...(res.object as any),
+            orderedItems: updatedData,
+          };
+
+          setOrderDetails(modifiedOrder);
+          setShowOrderDetails(true);
+        } else {
+          console.log(res.message);
+        }
+      } catch (error) {
+        console.error("API error", error);
+      }
+    },
+    [callApi]
+  );
+
+  const refreshActiveOrders = useCallback(async () => {
     try {
-      let res = await callApi({
-        url: `DeliveryCtl/get-order-details/${order?.orderId}`,
+      const res = await callApi({
+        url: `DeliveryCtl/get-my-orders-list/A`,
       }).unwrap();
 
       if (res.status) {
-        const updatedData: OrderItem[] =
-          (res.object as any)?.orderedItems?.map((item: any, index: number) => ({
-            ...item,
+        const updatedData: Order[] =
+          (res.object as any)?.map((order: Order, index: number) => ({
+            ...order,
             id: index + 1,
-            // Ensure fields exist for inputs
-            receivedQty: item.receivedQty ?? item.qty, // Default to ordered qty if null
-            receivedRemark: item.receivedRemark ?? "",
           })) ?? [];
+        dispatch(setActiveOrders(updatedData));
+      }
+    } catch (error) {
+      console.error("Failed to refresh orders", error);
+    }
+  }, [callApi, dispatch]);
 
-        const modifiedOrder = {
-          ...(res.object as any),
-          orderedItems: updatedData,
-        };
+  const handleUpdateOrderReceived = useCallback(async () => {
+    if (!orderDetails?.orderedItems) return;
 
-        setOrderDetails(modifiedOrder);
-        setShowOrderDetails(true);
+    // Cleaner mapping logic
+    const payload = orderDetails.orderedItems.map((item) => ({
+      orderItemId: item.orderItemId,
+      itemCode: item.itemCode,
+      qty: item.qty,
+      measQty: item.measQty,
+      measDesc: item.measDesc,
+      measCode: item.measCode,
+      itemDeliveryStatus: item.orderStatus,
+      receivedQty: item.receivedQty,
+      receivedMeasCode: item.measCode,
+      receivedRemark: item.receivedRemark,
+    }));
+
+    try {
+      const res = await callApi({
+        url: `DeliveryCtl/update-order-item-received-qty/${orderDetails?.orderId}`,
+        body: payload as any,
+      }).unwrap();
+
+      if (res.status) {
+        alert("Order updated successfully");
+        setShowOrderDetails(false);
+        refreshActiveOrders();
       } else {
         console.log(res.message);
       }
     } catch (error) {
       console.error("API error", error);
     }
-  };
+  }, [callApi, orderDetails, refreshActiveOrders]);
 
+  const handleSendToPantry = useCallback(async () => {
+    if (!orderDetails?.orderedItems) return;
+
+    // Cleaner mapping logic
+    const payload = orderDetails.orderedItems.map((item) => ({
+      orderItemId: item.orderItemId,
+      itemCode: item.itemCode,
+      quantity: item.qty,
+    }));
+
+    try {
+      const res = await callApi({
+        url: `OrderCtl/update-partner-order-items-qty/${orderDetails?.orderId}/${loginDetails?.cloudKitchenId}`,
+        body: payload as any,
+      }).unwrap();
+
+      if (res.status) {
+        alert("Order placed successfully");
+        setShowOrderDetails(false);
+        refreshActiveOrders();
+      } else {
+        console.log(res.message);
+      }
+    } catch (error) {
+      console.error("API error", error);
+    }
+  }, [callApi, orderDetails, loginDetails, refreshActiveOrders]);
+
+  const handleCancelOrder = useCallback(async () => {
+    if (!orderDetails?.orderId) return;
+    try {
+      const res = await callApi({
+        url: `OrderCtl/cancel_partner_order/${orderDetails.orderId}`,
+      }).unwrap();
+
+      if (res.status) {
+        alert("Order cancelled successfully!");
+        setShowOrderDetails(false);
+        refreshActiveOrders();
+      } else {
+        console.log(res.message);
+      }
+    } catch (error) {
+      console.error("API error", error);
+    }
+  }, [callApi, orderDetails, refreshActiveOrders]);
+
+  const handleDownloadExcel = useCallback(() => {
+    if (orderDetails?.orderedItems) {
+      const exceldata = orderDetails?.orderedItems?.map((item: OrderItem) => {
+        return {
+          id: item.id,
+          itemName: item.itemName,
+          preparedBy: item.preparedByList?.[0]?.name ?? "-",
+          storageType: item.storageType,
+          availableQuantity: item.availableQuantity,
+          qty: item.qty,
+          measDesc: `${item.measQty} x ${item.measDesc}`,
+          receivedQty: item.receivedQty,
+          receivedRemark: item.receivedRemark,
+        };
+      });
+      exportToExcel(
+        [
+          {
+            sheetName: `${orderDetails?.orderId}`,
+            data: exceldata as ExcelRow[],
+            columns: [
+              { header: "#", key: "id" },
+              { header: "Item Name", key: "itemName" },
+              { header: "Prepared By", key: "preparedBy" },
+              { header: "Freezer/Fridge", key: "storageType" },
+              { header: "On-Hand", key: "availableQuantity" },
+              { header: "Ordered Qty", key: "qty" },
+              { header: "UOM", key: `measDesc` },
+              { header: "Received Qty", key: "receivedQty" },
+              { header: "Remarks", key: "receivedRemark" },
+            ],
+          },
+        ],
+        `Order_Report(${orderDetails?.orderId})`
+      );
+    }
+  }, [orderDetails]);
+
+  // 3. Define Columns with proper dependencies
   const columns: TableColumn<Order>[] = useMemo(
     () => [
       {
@@ -164,11 +317,9 @@ export default function Page() {
         ),
       },
     ],
-    [] // Dependencies (add handleGetOrderDetails if linter requires it, but empty is usually fine for stable handlers)
+    [handleGetOrderDetails]
   );
 
-  // 4. FIXED: Removed 'orderDetails' from dependency array
-  // This ensures the table structure doesn't rebuild while typing.
   const orderDetailColumns: TableColumn<OrderItem>[] = useMemo(
     () => [
       {
@@ -183,9 +334,25 @@ export default function Page() {
         sortable: true,
       },
       {
-        name: "Freezer/Fridge",
+        name: "Prepared By",
+        selector: (row) =>
+          row.preparedByList ? row.preparedByList?.[0]?.name : "-",
+        sortable: true,
+        width: "160px",
+        center: true,
+      },
+      {
+        name: "Storage",
         selector: (row) => row.storageType,
         sortable: true,
+        width: "120px",
+        center: true,
+      },
+      {
+        name: "On-Hand",
+        selector: (row) => row.availableQuantity,
+        sortable: true,
+        width: "160px",
         center: true,
       },
       {
@@ -234,6 +401,7 @@ export default function Page() {
     ],
     [handleItemChange]
   );
+
   const entryOrderDetailColumns: TableColumn<OrderItem>[] = useMemo(
     () => [
       {
@@ -248,8 +416,22 @@ export default function Page() {
         sortable: true,
       },
       {
+        name: "Prepared By",
+        selector: (row) =>
+          row.preparedByList ? row.preparedByList?.[0]?.name : "-",
+        sortable: true,
+        width: "160px",
+        center: true,
+      },
+      {
         name: "Freezer/Fridge",
         selector: (row) => row.storageType,
+        sortable: true,
+        center: true,
+      },
+      {
+        name: "On-Hand",
+        selector: (row) => row.availableQuantity,
         sortable: true,
         center: true,
       },
@@ -279,198 +461,48 @@ export default function Page() {
     [handleItemChange]
   );
 
+  // Initial Fetch
   useEffect(() => {
-    const handleGetActiveOrders = async () => {
-      try {
-        let res = await callApi({
-          url: `DeliveryCtl/get-my-orders-list/A`,
-        }).unwrap();
-
-        if (res.status) {
-          const updatedData: Order[] =
-            (res.object as any)?.map((order: Order, index: number) => ({
-              ...order,
-              id: index + 1,
-            })) ?? [];
-          dispatch(setActiveOrders(updatedData));
-        } else {
-          console.log(res.message);
-        }
-      } catch (error) {
-        console.error("API error", error);
-      }
-    };
-
     if (rehydrated && loginDetails) {
-      handleGetActiveOrders();
+      refreshActiveOrders();
     }
-  }, [rehydrated, loginDetails, callApi, dispatch]);
+  }, [rehydrated, loginDetails, refreshActiveOrders]);
 
-  const handleUpdateOrderReceived = async () => {
-    const obj = {
-      orderItemId: 0,
-      itemCode: 0,
-      qty: 0,
-      measQty: 0,
-      measDesc: "",
-      measCode: 0,
-      itemDeliveryStatus: "",
-      receivedQty: 0,
-      receivedMeasCode: 0,
-      receivedRemark: "",
-    }
-    const arr: { orderItemId: number; itemCode: number; qty: number; measQty: number; measDesc: string; measCode: number; itemDeliveryStatus: string; receivedQty: number; receivedMeasCode: number; receivedRemark: string; }[] = []
-    orderDetails?.orderedItems?.forEach((item) => {
-      const newObj = { ...obj };
-      newObj.orderItemId = item.orderItemId;
-      newObj.itemCode = item.itemCode;
-      newObj.qty = item.qty;
-      newObj.measQty = item.measQty;
-      newObj.measDesc = item.measDesc;
-      newObj.measCode = item.measCode;
-      newObj.itemDeliveryStatus = item.orderStatus;
-      newObj.receivedQty = item.receivedQty;
-      newObj.receivedMeasCode = item.measCode;
-      newObj.receivedRemark = item.receivedRemark;
-      arr.push(newObj);
-    });
-    try {
-      let res = await callApi({
-        url: `DeliveryCtl/update-order-item-received-qty/${orderDetails?.orderId}`,
-        body: arr as any,
-      }).unwrap();
-
-      if (res.status) {
-        alert("Order updated successfully");
-        setShowOrderDetails(false);
-        // Refresh active orders
-        const refreshedRes = await callApi({
-          url: `DeliveryCtl/get-my-orders-list/A`,
-        }).unwrap();
-
-        if (refreshedRes.status) {
-          const updatedData: Order[] =
-            (refreshedRes.object as any)?.map((order: Order, index: number) => ({
-              ...order,
-              id: index + 1,
-            })) ?? [];
-          dispatch(setActiveOrders(updatedData));
-        }
-      } else {
-        console.log(res.message);
-      }
-    } catch (error) {
-      console.error("API error", error);
-    }
-  };
-  const handleDownloadExcel = () => {
-    if (orderDetails?.orderedItems) {
-      let exceldata = orderDetails?.orderedItems?.map((item: any) => {
-        return {
-          id: item.id,
-          itemName: item.itemName,
-          storageType: item.storageType,
-          qty: item.qty,
-          measDesc: `${item.measQty} x ${item.measDesc}`,
-          receivedQty: item.receivedQty,
-          receivedRemark: item.receivedRemark
-        }
-      })
-      exportToExcel([
-        {
-          sheetName: `${orderDetails?.orderId}`,
-          data: exceldata as ExcelRow[],
-          columns: [
-            { header: "#", key: "id" },
-            { header: "Item Name", key: "itemName" },
-            { header: "Freezer/Fridge", key: "storageType" },
-            { header: "Ordered Qty", key: "qty" },
-            { header: "UOM", key: `measDesc` },
-            { header: "Received Qty", key: "receivedQty" },
-            { header: "Remarks", key: "receivedRemark" },
-          ],
-        }
-      ], `Order_Report(${orderDetails?.orderId})`);
-    }
-  }
-
-  const handleCancelOrder = async () => {
-    try {
-      const res = await callApi({
-        url: `OrderCtl/cancel_partner_order/${orderDetails?.orderId}`
-      }).unwrap();
-
-      if (res.status) {
-        alert("Order cancelled successfully!");
-        setShowOrderDetails(false);
-        // Refresh active orders
-        const refreshedRes = await callApi({
-          url: `DeliveryCtl/get-my-orders-list/A`,
-        }).unwrap();
-
-        if (refreshedRes.status) {
-          const updatedData: Order[] =
-            (refreshedRes.object as any)?.map(
-              (order: Order, index: number) => ({
-                ...order,
-                id: index + 1,
-              })
-            ) ?? [];
-          dispatch(setActiveOrders(updatedData));
-        }
-      } else {
-        console.log(res.message);
-      }
-    } catch (error) {
-      console.error("API error", error);
-    }
-  }
-
-  const handleSendToPantry = async () => {
-    const obj = {
-      orderItemId: 0,
-      itemCode: 0,
-      quantity: 0
-    };
-    const arr: typeof obj[] = [];
-    orderDetails?.orderedItems?.forEach((item) => {
-      const newObj = { ...obj };
-      newObj.orderItemId = item.orderItemId;
-      newObj.itemCode = item.itemCode;
-      newObj.quantity = item.qty;
-      arr.push(newObj);
-    });
-    try {
-      let res = await callApi({
-        url: `OrderCtl/update-partner-order-items-qty/${orderDetails?.orderId}/${loginDetails?.cloudKitchenId}`,
-        body: arr as any,
-      }).unwrap();
-
-      if (res.status) {
-        alert("Order placed successfully");
-        setShowOrderDetails(false);
-        // Refresh active orders
-        const refreshedRes = await callApi({
-          url: `DeliveryCtl/get-my-orders-list/A`,
-        }).unwrap();
-
-        if (refreshedRes.status) {
-          const updatedData: Order[] =
-            (refreshedRes.object as any)?.map(
-              (order: Order, index: number) => ({
-                ...order,
-                id: index + 1,
-              })
-            ) ?? [];
-          dispatch(setActiveOrders(updatedData));
-        }
-      } else {
-        console.log(res.message);
-      }
-    } catch (error) {
-      console.error("API error", error);
-    }
-  };
+  // 4. Helper to remove duplicate JSX in Modal Body and Footer
+  const renderActionButtons = () => (
+    <>
+      <Button
+        className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
+        onClick={handleDownloadExcel}
+      >
+        Download as excel
+      </Button>
+      <Button
+        className="btn-outline text-primary me-2 text-capitalize"
+        onClick={handleCancelOrder}
+      >
+        Cancel Order
+      </Button>
+      <Button
+        className="btn-outline text-primary me-2 text-capitalize"
+        onClick={() => setShowOrderDetails(false)}
+      >
+        Close
+      </Button>
+      <Button
+        className="btn-filled text-capitalize"
+        onClick={() => {
+          if (orderDetails?.orderStatus == "ENTERED") {
+            handleSendToPantry();
+          } else {
+            handleUpdateOrderReceived();
+          }
+        }}
+      >
+        {orderDetails?.orderStatus == "ENTERED" ? `Send To Pantry` : `Save`}
+      </Button>
+    </>
+  );
 
   return (
     <Container fluid className="p-4">
@@ -522,46 +554,7 @@ export default function Page() {
         <Modal.Body>
           <div className="d-flex align-items-center justify-content-between">
             <p className="font-24 fw-bold">Order ID: {orderDetails?.orderId}</p>
-            <div className="d-flex flex-wrap">
-              <Button
-                className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
-                onClick={() => {
-                  handleDownloadExcel();
-                }}
-              >
-                Download as excel
-              </Button>
-              <Button
-                className="btn-outline text-primary me-2 text-capitalize"
-                onClick={() => {
-                  handleCancelOrder();
-                }}
-              >
-                Cancel Order
-              </Button>
-              <Button
-                className="btn-outline text-primary me-2 text-capitalize"
-                onClick={() => {
-                  setShowOrderDetails(false);
-                }}
-              >
-                Close
-              </Button>
-              <Button
-                className="btn-filled text-capitalize"
-                onClick={() => {
-                  if (orderDetails?.orderStatus == "ENTERED") {
-                    handleSendToPantry();
-                  } else {
-                    handleUpdateOrderReceived();
-                  }
-                }}
-              >
-                {orderDetails?.orderStatus == "ENTERED"
-                  ? `Send To Pantry`
-                  : `Save`}
-              </Button>
-            </div>
+            <div className="d-flex flex-wrap">{renderActionButtons()}</div>
           </div>
           <div className="mt-4">
             <Datatable<OrderItem>
@@ -577,46 +570,7 @@ export default function Page() {
           </div>
         </Modal.Body>
         <Modal.Footer className="border-0">
-          <div>
-            <Button
-              className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
-              onClick={() => {
-                handleDownloadExcel();
-              }}
-            >
-              Download as excel
-            </Button>
-            <Button
-              className="btn-outline text-primary me-2 text-capitalize"
-              onClick={() => {
-                handleCancelOrder();
-              }}
-            >
-              Cancel Order
-            </Button>
-            <Button
-              className="btn-outline text-primary me-2 text-capitalize"
-              onClick={() => {
-                setShowOrderDetails(false);
-              }}
-            >
-              Close
-            </Button>
-            <Button
-              className="btn-filled text-capitalize"
-              onClick={() => {
-                if (orderDetails?.orderStatus == "ENTERED") {
-                  handleSendToPantry();
-                } else {
-                  handleUpdateOrderReceived();
-                }
-              }}
-            >
-              {orderDetails?.orderStatus == "ENTERED"
-                ? `Send To Pantry`
-                : `Save`}
-            </Button>
-          </div>
+          <div>{renderActionButtons()}</div>
         </Modal.Footer>
       </Modal>
     </Container>
