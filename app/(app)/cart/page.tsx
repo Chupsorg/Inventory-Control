@@ -487,24 +487,22 @@ export default function Page() {
             }).unwrap()
           )
         );
-
         let result = responses.map((res, index) => {
-          const itemsWithIds = (res.object as any[])?.map(
-            (itm: any, i: number) => {
-              const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
-              const calculatedReqQty =
-                itm.recommendedQty > calculatedAvailableQty
-                  ? Math.max(0, itm.maxQty - calculatedAvailableQty)
-                  : Math.max(0, itm.recommendedQty - calculatedAvailableQty);
-              return {
-                ...itm,
-                id: i + 1,
-                checked: false,
-                reqQty: calculatedReqQty,
-                originalReqQty: calculatedReqQty,
-              };
-            }
-          );
+          const rawItems = (res.object as any[]) || [];
+          const itemsWithIds = rawItems?.map((itm: any, i: number) => {
+            const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
+            const calculatedReqQty =
+              itm.recommendedQty > calculatedAvailableQty
+                ? Math.max(0, itm.maxQty - calculatedAvailableQty)
+                : Math.max(0, itm.recommendedQty - calculatedAvailableQty);
+            return {
+              ...itm,
+              id: i + 1,
+              checked: false,
+              reqQty: calculatedReqQty,
+              originalReqQty: calculatedReqQty,
+            };
+          });
           return { config: primaryItemList[index].config, items: itemsWithIds };
         });
 
