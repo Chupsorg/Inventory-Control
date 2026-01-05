@@ -29,7 +29,7 @@ type DayCode = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
 type DeliveryDate = {
   day: DayCode;
   date: Date;
-  date_range: string;
+  date_range: DateObject[];
   custom_date_range: DateObject[];
   days: DayCode[];
 };
@@ -68,6 +68,19 @@ export default function Page() {
   const [isUploadsuccess, setisUploadsuccess] = useState(false);
   const [stockJson, setstockJson] = useState<AssemblyRow[]>([]);
   const [assemblyModal, setassemblyModal] = useState<boolean>(false);
+  const DAY_CODE_MAP: DayCode[] = [
+    "SUN",
+    "MON",
+    "TUE",
+    "WED",
+    "THU",
+    "FRI",
+    "SAT",
+  ];
+
+  const getDayCodeFromDate = (date: Date): DayCode =>
+    DAY_CODE_MAP[date.getDay()];
+
 
   const handleEditAssembly = (id: number, value: number) => {
     setstockJson((prev) =>
@@ -133,10 +146,37 @@ export default function Page() {
         if (res.status) {
           const updatedData =
             (res.object as any)?.[0]?.dataValue?.map(
-              (con: { date: Date; day: DayCode }) => ({
-                ...con,
-                date: new Date(con.date),
-              })
+              (con: {
+                date: Date | string;
+                day: DayCode;
+                date_range?: number[] | DateObject[];
+              }) => {
+                const normalizedDate = new Date(con.date);
+
+                if (Array.isArray(con.date_range) && con.date_range.length === 2) {
+                  let start = new DateObject(new Date(con.date_range[0] as any));
+                  let end = new DateObject(new Date(con.date_range[1] as any));
+
+                  if (start.toDate() > end.toDate()) {
+                    [start, end] = [end, start];
+                  }
+
+                  return {
+                    ...con,
+                    date: normalizedDate,
+                    date_range: [start, end],
+                  };
+                }
+
+                const end = new DateObject().subtract(1, "day");
+                const start = new DateObject(end).subtract(6, "day");
+
+                return {
+                  ...con,
+                  date: normalizedDate,
+                  date_range: [start, end],
+                };
+              }
             ) ?? [];
           setDeliveryDates(updatedData);
           setconfigDataId((res.object as any)?.[0]?.dataId);
@@ -268,24 +308,24 @@ export default function Page() {
     );
   };
 
-  const formattedRange = useMemo(() => {
-    if (!stockDate) return "--";
-    const { startDate, endDate } = getDateRange(
-      stockDate.toDate(),
-      "week",
-      1,
-      "subtract"
-    );
-    return `${startDate.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })} - ${endDate.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })}`;
-  }, [stockDate]);
+  // const formattedRange = useMemo(() => {
+  //   if (!stockDate) return "--";
+  //   const { startDate, endDate } = getDateRange(
+  //     stockDate.toDate(),
+  //     "week",
+  //     1,
+  //     "subtract"
+  //   );
+  //   return `${startDate.toLocaleDateString("en-GB", {
+  //     day: "2-digit",
+  //     month: "short",
+  //     year: "numeric",
+  //   })} - ${endDate.toLocaleDateString("en-GB", {
+  //     day: "2-digit",
+  //     month: "short",
+  //     year: "numeric",
+  //   })}`;
+  // }, [stockDate]);
 
   const isDayAlreadyUsed = (day: DeliveryDate["day"], currentIndex: number) => {
     return deliveryDates.some(
@@ -293,9 +333,44 @@ export default function Page() {
     );
   };
 
+  const areAllSelectedDaysInRange = (
+    dateRange: DateObject[],
+    days: DayCode[]
+  ): boolean => {
+    if (!days.length) return false;
+    if (!dateRange || dateRange.length !== 2) return false;
+
+    let [start, end] = dateRange;
+
+    if (start.toDate() > end.toDate()) {
+      [start, end] = [end, start];
+    }
+
+    const daysInRange = new Set<DayCode>();
+    let current = new Date(start.toDate());
+    const endDate = end.toDate();
+
+    while (current <= endDate) {
+      daysInRange.add(getDayCodeFromDate(current));
+      current.setDate(current.getDate() + 1);
+    }
+
+    return days.every(day => daysInRange.has(day));
+  };
+
   const handleSaveConfig = async () => {
     if (stockDataId <= 0) {
       alert('Please upload stock file to proceed!')
+      return;
+    }
+    const invalidItem = deliveryDates.find(item =>
+      !areAllSelectedDaysInRange(item.date_range, item.days)
+    );
+
+    if (invalidItem) {
+      alert(
+        `One or more selected days do not fall within the selected date range for ${invalidItem.day}`
+      );
       return;
     }
       try {
@@ -350,7 +425,7 @@ export default function Page() {
   return (
     <Container fluid className="p-4">
       <Row>
-        <Col xs={{ order: 1 }} md={{ order: 0 }}>
+        {/* <Col xs={{ order: 1 }} md={{ order: 0 }}>
           <h5 className="font-24 fw-bold">Setup</h5>
           <div className="d-flex">
             <Form.Select
@@ -388,7 +463,7 @@ export default function Page() {
               )}
             />
           </div>
-        </Col>
+        </Col> */}
         <Col>
           <Button
             className="btn-filled float-end"
@@ -555,19 +630,36 @@ export default function Page() {
                     opacity: uploadloader ? 0.5 : 1,
                   }}
                   onClick={() => {
-                    if (!uploadloader) {
-                      setDeliveryDates((prev) => [
+                    if (uploadloader) return;
+
+                    setDeliveryDates((prev) => {
+                      let sharedDateRange: DateObject[] = [];
+
+                      const existing = prev.find(
+                        (item) => Array.isArray(item.date_range) && item.date_range.length === 2
+                      );
+
+                      if (existing) {
+                        sharedDateRange = existing.date_range;
+                      } else {
+                        const end = new DateObject().subtract(1, "day");
+                        const start = new DateObject(end).subtract(6, "day");
+                        sharedDateRange = [start, end];
+                      }
+
+                      return [
                         ...prev,
                         {
                           day: "MON",
                           date: getComingWeekday("MON"),
-                          date_range: "",
+                          date_range: sharedDateRange,
                           custom_date_range: [],
                           days: [],
                         },
-                      ]);
-                    }
+                      ];
+                    });
                   }}
+
                 >
                   <Image
                     src={"/inventorymanagement/orange-plus.png"}
@@ -579,9 +671,57 @@ export default function Page() {
               </div>
             </div>
             <div className="border-bottom p-3">
-              <h4 className="font-16 fw-bold">Sales Data</h4>
-              {deliveryDates?.map((dates, index) => (
-                <div className="mb-3" key={index}>
+              <div className="d-flex align-items-center mb-2">
+                <h4 className="font-16 fw-bold me-3 m-0">Sales Data</h4>
+                <DatePicker
+                  range
+                  value={deliveryDates[0]?.date_range}
+                  disabled={uploadloader}
+                  onChange={(value) => {
+                    setDeliveryDates(prev =>
+                      prev.map(item => ({
+                        ...item,
+                        date_range: value as DateObject[]
+                      }))
+                    );
+                  }}
+                  placeholder="Date range"
+                  format="DD MMM, YYYY"
+                  maxDate={new DateObject().subtract(1, "day")}
+                  render={(value, openCalendar) => (
+                    <div
+                      className="custom-date-input"
+                      onClick={!uploadloader ? openCalendar : undefined}
+                      style={{
+                        cursor: uploadloader ? "not-allowed" : "pointer",
+                        opacity: uploadloader ? 0.6 : 1,
+                      }}
+                    >
+                      <input
+                        type="text"
+                        readOnly
+                        value={value}
+                        placeholder="Date range"
+                        disabled={uploadloader}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+              {deliveryDates?.map((dates: DeliveryDate, index) => {
+                const formattedRange =
+                  dates.date_range.length === 2
+                    ? `${dates.date_range[0]?.toDate().toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })} - ${dates.date_range[1]?.toDate().toLocaleDateString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}`
+                    : "--";
+                return <div className="mb-3" key={index}>
                   <p className="font-13 fw-bold">
                     Sales Data for {getDayName(dates.date)} :
                     <span className="text-secondary fw-normal">
@@ -625,49 +765,10 @@ export default function Page() {
                         </div>
                       )
                     )}
-
-                    <DatePicker
-                      range
-                      value={dates.custom_date_range}
-                      disabled={uploadloader}
-                      onChange={(value) => {
-                        setDeliveryDates((prev) =>
-                          prev.map((item) =>
-                            item.day === dates.day
-                              ? {
-                                  ...item,
-                                  custom_date_range: value as DateObject[],
-                                  days: [],
-                                }
-                              : item
-                          )
-                        );
-                      }}
-                      placeholder="Custom date"
-                      format="DD MMM, YYYY"
-                      maxDate={new DateObject().subtract(1, "day")}
-                      render={(value, openCalendar) => (
-                        <div
-                          className="custom-date-input"
-                          onClick={!uploadloader ? openCalendar : undefined}
-                          style={{
-                            cursor: uploadloader ? "not-allowed" : "pointer",
-                            opacity: uploadloader ? 0.6 : 1,
-                          }}
-                        >
-                          <input
-                            type="text"
-                            readOnly
-                            value={value}
-                            placeholder="Custom date"
-                            disabled={uploadloader}
-                          />
-                        </div>
-                      )}
-                    />
                   </div>
                 </div>
-              ))}
+
+              })}
             </div>
           </div>
         </Col>

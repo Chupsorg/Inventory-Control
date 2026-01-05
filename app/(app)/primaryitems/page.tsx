@@ -58,6 +58,7 @@ const PrimaryItemGroup = ({
   isLoading: boolean;
   onAddClick: () => void;
 }) => {
+  const items = Array.isArray(con.items) ? con.items : [];
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -78,7 +79,7 @@ const PrimaryItemGroup = ({
     const lower = searchInput.toLowerCase();
     const set = new Set<string>();
 
-    con.items.forEach((item: any) => {
+    items.forEach((item: any) => {
       if (item.itemName?.toLowerCase().includes(lower)) {
         set.add(item.itemName);
       }
@@ -94,11 +95,11 @@ const PrimaryItemGroup = ({
     });
 
     return Array.from(set).slice(0, 8);
-  }, [searchInput, con.items]);
+  }, [searchInput, items]);
 
   // 1. Filter items based on search term
   const filteredItems = useMemo(() => {
-    let result = con.items;
+    let result = items;
 
     if (appliedSearch) {
       const lower = appliedSearch.toLowerCase();
@@ -136,7 +137,7 @@ const PrimaryItemGroup = ({
     }
 
     return result;
-  }, [con.items, appliedSearch, isQtyFilterApplied, qtyOperator, qtyValue]);
+  }, [items, appliedSearch, isQtyFilterApplied, qtyOperator, qtyValue]);
 
   const isAllVisibleSelected =
     filteredItems.length > 0 &&
@@ -371,7 +372,7 @@ const PrimaryItemGroup = ({
     checked: item.checked ?? false,
   }));
 
-  const checkedCount = con.items.filter((i: any) => i.checked).length;
+  const checkedCount = con.items && con.items.filter((i: any) => i.checked).length;
   useEffect(() => {
     const handleClickOutside = () => setShowSuggestions(false);
     document.addEventListener("click", handleClickOutside);
@@ -390,7 +391,7 @@ const PrimaryItemGroup = ({
           <div>
             <h4 className="font-16 text-secondary fw-bold m-0">
               {getDayName(new Date(con.config.date as string))} Delivery (
-              {filteredItems.length}/{con.items.length})
+              {filteredItems.length}/{items.length})
             </h4>
             <p className="m-0 font-13">
               {formatDate(con.config.date as string)}
@@ -620,12 +621,21 @@ export default function Page() {
   }, [availableItems, itemSearchText]);
 
   const buildPrimaryItemPayload = (cfg: any) => {
+    const hasRange = cfg.date_range && cfg.date_range.length === 2;
     return {
       cloud_kitchen_id: loginDetails?.cloudKitchenId,
       delivery_date: new Date(cfg.date).toISOString().split("T")[0],
       sale_days: cfg.days,
       previous_week_count: 1,
-      sale_dates: cfg.custom_date_range,
+      // sale_dates: cfg.custom_date_range,
+      sale_dates: [],
+      start_date: hasRange
+        ? cfg.date_range[0].toDate().toISOString().split("T")[0]
+        : null,
+
+      end_date: hasRange
+        ? cfg.date_range[1].toDate().toISOString().split("T")[0]
+        : null,
     };
   };
 
@@ -673,15 +683,19 @@ export default function Page() {
             )
           );
 
-          const result = responses.map((res, index) => ({
-            config: config[index],
-            items: (res.object as any)?.map((itm: any, i: number) => ({
-              ...itm,
-              id: i + 1,
-              checked: false,
-              rcomQty: itm.itemQty,
-            })),
-          }));
+          const result = responses.map((res, index) => {
+            const itemsArray = Array.isArray(res.object) ? res.object : [];
+
+            return {
+              config: config[index],
+              items: itemsArray.map((itm: any, i: number) => ({
+                ...itm,
+                id: i + 1,
+                checked: false,
+                rcomQty: itm.itemQty,
+              })),
+            };
+          });
 
           dispatch(setPrimaryItems(result as any));
         } catch (err) {

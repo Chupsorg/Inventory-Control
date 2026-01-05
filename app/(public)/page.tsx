@@ -14,7 +14,7 @@ export default function page() {
 
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
-    const [rememberMeNew, setRememberMeNew] = useState(false);
+    const [rememberMeNew, setRememberMeNew] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     useEffect(() => {
@@ -86,8 +86,9 @@ export default function page() {
             } else {
                 setErrorMessage("Invalid credentials. Please try again.");
             }
-        } catch (err) {
-            setErrorMessage("Something went wrong. Please try again.");
+        } catch (err:any) {
+            let message = err.data.message ? err.data.message : "Something went wrong. Please try again.";
+            setErrorMessage(message);
         }
     };
     return (

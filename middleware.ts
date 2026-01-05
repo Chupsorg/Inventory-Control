@@ -1,27 +1,45 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const APP_ROOT = "/inventorymanagement";
+
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const { pathname } = request.nextUrl;
 
-  // 🔐 PROTECTED ROUTES
-  const protectedRoutes = ["/orders","/history", "/config", "/primaryitems", "/cart"];
+  //PROTECTED ROUTES (relative to basePath)
+  const protectedRoutes = [
+    "/orders",
+    "/history",
+    "/config",
+    "/primaryitems",
+    "/cart",
+  ];
 
-  // If NOT logged in and accessing protected route → login
-  if (!token && protectedRoutes.some((path) => pathname.startsWith(path))) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // No token + protected route → go to APP ROOT
+  if (!token && protectedRoutes.some(path => pathname.startsWith(path))) {
+    return NextResponse.redirect(
+      new URL(APP_ROOT, request.url)
+    );
   }
 
-  // If logged in and accessing login or home → orders
-  if (token && (pathname === "/")) {
-    return NextResponse.redirect(new URL("/inventorymanagement/orders", request.url));
+  //Token exists + visiting app root → orders
+  if (token && pathname === "/") {
+    return NextResponse.redirect(
+      new URL(`${APP_ROOT}/orders`, request.url)
+    );
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/history/:path*", "/orders/:path*", "/config/:path*", "/primaryitems/:path*", "/cart/:path*"],
+  matcher: [
+    "/",
+    "/orders/:path*",
+    "/history/:path*",
+    "/config/:path*",
+    "/primaryitems/:path*",
+    "/cart/:path*",
+  ],
 };
-

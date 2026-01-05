@@ -47,7 +47,11 @@ export const baseQueryWithAuth: BaseQueryFn<
 
     // redirect to login
     if (typeof window !== "undefined") {
-      window.location.href = "/";
+      const LOGIN_PATH = "/inventorymanagement";
+
+      if (window.location.pathname !== LOGIN_PATH) {
+        window.location.href = LOGIN_PATH;
+      }
     }
   }
 

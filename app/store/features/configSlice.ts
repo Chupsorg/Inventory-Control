@@ -6,7 +6,7 @@ type DayCode = 'SUN' | 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT';
 export interface ConfigItem {
   day: DayCode;
   date: Date;
-  date_range: string;
+  date_range: DateObject[];
   custom_date_range: DateObject[];
   days: DayCode[];
 }
