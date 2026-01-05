@@ -6,7 +6,7 @@ import { TableColumn } from "react-data-table-component";
 import { useRouter } from "next/navigation";
 import { useCallApiMutation } from "@/app/store/services/apiSlice";
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/app/store";
+import type { RootState } from "@/app/store";
 import { setActiveOrders, Order } from "@/app/store/features/orderSlice";
 import { exportToExcel } from "@/app/utils/exportToExcel";
 import { getDayName } from "@/app/utils/properties";
@@ -58,11 +58,9 @@ export default function Page() {
   const activeOrders = useSelector(
     (state: RootState) => state.order.activeOrders
   );
-
   const loginDetails = useSelector(
     (state: RootState) => state.auth.login_Details
   );
-
   const rehydrated = useSelector(
     (state: RootState) => state._persist?.rehydrated
   );
@@ -71,14 +69,9 @@ export default function Page() {
     (id: number, field: string, value: string | number) => {
       setOrderDetails((prev) => {
         if (!prev || !prev.orderedItems) return prev;
-
-        const updatedItems = prev.orderedItems.map((item) => {
-          if (item.id === id) {
-            return { ...item, [field]: value };
-          }
-          return item;
-        });
-
+        const updatedItems = prev.orderedItems.map((item) =>
+          item.id === id ? { ...item, [field]: value } : item
+        );
         return { ...prev, orderedItems: updatedItems };
       });
     },
@@ -98,21 +91,16 @@ export default function Page() {
               (item: any, index: number) => ({
                 ...item,
                 id: index + 1,
-                // Ensure fields exist for inputs
-                receivedQty: item.receivedQty ?? 0, // Default to ordered qty if null
+                receivedQty: item.receivedQty ?? 0,
                 receivedRemark: item.receivedRemark ?? "",
               })
             ) ?? [];
 
-          const modifiedOrder = {
+          setOrderDetails({
             ...(res.object as any),
             orderedItems: updatedData,
-          };
-
-          setOrderDetails(modifiedOrder);
+          });
           setShowOrderDetails(true);
-        } else {
-          console.log(res.message);
         }
       } catch (error) {
         console.error("API error", error);
@@ -126,7 +114,6 @@ export default function Page() {
       const res = await callApi({
         url: `DeliveryCtl/get-my-orders-list/A`,
       }).unwrap();
-
       if (res.status) {
         const updatedData: Order[] =
           (res.object as any)?.map((order: Order, index: number) => ({
@@ -142,8 +129,6 @@ export default function Page() {
 
   const handleUpdateOrderReceived = useCallback(async () => {
     if (!orderDetails?.orderedItems) return;
-
-    // Cleaner mapping logic
     const payload = orderDetails.orderedItems.map((item) => ({
       orderItemId: item.orderItemId,
       itemCode: item.itemCode,
@@ -162,13 +147,10 @@ export default function Page() {
         url: `DeliveryCtl/update-order-item-received-qty/${orderDetails?.orderId}`,
         body: payload as any,
       }).unwrap();
-
       if (res.status) {
         alert("Order updated successfully");
         setShowOrderDetails(false);
         refreshActiveOrders();
-      } else {
-        console.log(res.message);
       }
     } catch (error) {
       console.error("API error", error);
@@ -177,8 +159,6 @@ export default function Page() {
 
   const handleSendToPantry = useCallback(async () => {
     if (!orderDetails?.orderedItems) return;
-
-    // Cleaner mapping logic
     const payload = orderDetails.orderedItems.map((item) => ({
       orderItemId: item.orderItemId,
       itemCode: item.itemCode,
@@ -190,13 +170,10 @@ export default function Page() {
         url: `OrderCtl/update-partner-order-items-qty/${orderDetails?.orderId}/${loginDetails?.cloudKitchenId}`,
         body: payload as any,
       }).unwrap();
-
       if (res.status) {
         alert("Order placed successfully");
         setShowOrderDetails(false);
         refreshActiveOrders();
-      } else {
-        console.log(res.message);
       }
     } catch (error) {
       console.error("API error", error);
@@ -209,13 +186,10 @@ export default function Page() {
       const res = await callApi({
         url: `OrderCtl/cancel_partner_order/${orderDetails.orderId}`,
       }).unwrap();
-
       if (res.status) {
         alert("Order cancelled successfully!");
         setShowOrderDetails(false);
         refreshActiveOrders();
-      } else {
-        console.log(res.message);
       }
     } catch (error) {
       console.error("API error", error);
@@ -224,24 +198,25 @@ export default function Page() {
 
   const handleDownloadExcel = useCallback(() => {
     if (orderDetails?.orderedItems) {
-      const exceldata = orderDetails?.orderedItems?.map((item: OrderItem) => {
-        return {
+      const exceldata: ExcelRow[] = orderDetails.orderedItems.map(
+        (item: OrderItem) => ({
           id: item.id,
           itemName: item.itemName,
           preparedBy: item.preparedByList?.[0]?.name ?? "-",
-          storageType: item.storageType,
-          availableQuantity: item.availableQuantity,
+          storageType: item.storageType || "N/A",
+          availableQuantity: item.availableQuantity ?? 0,
           qty: item.qty,
           measDesc: `${item.measQty} x ${item.measDesc}`,
           receivedQty: item.receivedQty,
-          receivedRemark: item.receivedRemark,
-        };
-      });
+          receivedRemark: item.receivedRemark || "",
+        })
+      );
+
       exportToExcel(
         [
           {
             sheetName: `${orderDetails?.orderId}`,
-            data: exceldata as ExcelRow[],
+            data: exceldata,
             columns: [
               { header: "#", key: "id" },
               { header: "Item Name", key: "itemName" },
@@ -260,7 +235,6 @@ export default function Page() {
     }
   }, [orderDetails]);
 
-  // 3. Define Columns with proper dependencies
   const columns: TableColumn<Order>[] = useMemo(
     () => [
       {
@@ -269,11 +243,7 @@ export default function Page() {
         width: "60px",
         sortable: true,
       },
-      {
-        name: "Order Id",
-        selector: (order) => order.orderId,
-        sortable: true,
-      },
+      { name: "Order Id", selector: (order) => order.orderId, sortable: true },
       {
         name: "Ordered Date",
         selector: (order) =>
@@ -293,13 +263,13 @@ export default function Page() {
         selector: (order) => order.orderStatus,
         cell: (order) => (
           <span
-            className={`${
+            className={
               order.orderStatus === "WAITING"
                 ? "text-green"
                 : order.orderStatus === "ENTERED"
                 ? "text-secondary"
                 : "text-mute"
-            }`}
+            }
           >
             {order.orderStatus === "ENTERED" ? "SAVED" : order.orderStatus}
           </span>
@@ -309,7 +279,7 @@ export default function Page() {
         name: "",
         cell: (order) => (
           <span
-            className={`text-primary cursor-pointer`}
+            className="text-primary cursor-pointer"
             onClick={() => handleGetOrderDetails(order)}
           >
             Change Status
@@ -328,15 +298,10 @@ export default function Page() {
         width: "60px",
         sortable: true,
       },
-      {
-        name: "Item",
-        selector: (row) => row.itemName,
-        sortable: true,
-      },
+      { name: "Item", selector: (row) => row.itemName, sortable: true },
       {
         name: "Prepared By",
-        selector: (row) =>
-          row.preparedByList ? row.preparedByList?.[0]?.name : "-",
+        selector: (row) => row.preparedByList?.[0]?.name ?? "-",
         sortable: true,
         width: "160px",
         center: true,
@@ -350,7 +315,7 @@ export default function Page() {
       },
       {
         name: "On-Hand",
-        selector: (row) => row.availableQuantity,
+        selector: (row) => row.availableQuantity ?? 0,
         sortable: true,
         width: "160px",
         center: true,
@@ -371,8 +336,6 @@ export default function Page() {
       },
       {
         name: "Received Qty",
-        selector: (row) => row.receivedQty,
-        center: true,
         cell: (row) => (
           <Form.Control
             type="number"
@@ -384,10 +347,10 @@ export default function Page() {
             style={{ width: "80px" }}
           />
         ),
+        center: true,
       },
       {
         name: "Remarks",
-        selector: (row) => row.receivedRemark,
         cell: (row) => (
           <Form.Control
             type="text"
@@ -410,15 +373,10 @@ export default function Page() {
         width: "60px",
         sortable: true,
       },
-      {
-        name: "Item",
-        selector: (row) => row.itemName,
-        sortable: true,
-      },
+      { name: "Item", selector: (row) => row.itemName, sortable: true },
       {
         name: "Prepared By",
-        selector: (row) =>
-          row.preparedByList ? row.preparedByList?.[0]?.name : "-",
+        selector: (row) => row.preparedByList?.[0]?.name ?? "-",
         sortable: true,
         width: "160px",
         center: true,
@@ -431,14 +389,12 @@ export default function Page() {
       },
       {
         name: "On-Hand",
-        selector: (row) => row.availableQuantity,
+        selector: (row) => row.availableQuantity ?? 0,
         sortable: true,
         center: true,
       },
       {
         name: "Order Qty",
-        selector: (row) => row.qty,
-        center: true,
         cell: (row) => (
           <Form.Control
             type="number"
@@ -450,6 +406,7 @@ export default function Page() {
             style={{ width: "80px" }}
           />
         ),
+        center: true,
       },
       {
         name: "UOM",
@@ -461,14 +418,10 @@ export default function Page() {
     [handleItemChange]
   );
 
-  // Initial Fetch
   useEffect(() => {
-    if (rehydrated && loginDetails) {
-      refreshActiveOrders();
-    }
+    if (rehydrated && loginDetails) refreshActiveOrders();
   }, [rehydrated, loginDetails, refreshActiveOrders]);
 
-  // 4. Helper to remove duplicate JSX in Modal Body and Footer
   const renderActionButtons = () => (
     <>
       <Button
@@ -491,15 +444,13 @@ export default function Page() {
       </Button>
       <Button
         className="btn-filled text-capitalize"
-        onClick={() => {
-          if (orderDetails?.orderStatus == "ENTERED") {
-            handleSendToPantry();
-          } else {
-            handleUpdateOrderReceived();
-          }
-        }}
+        onClick={() =>
+          orderDetails?.orderStatus === "ENTERED"
+            ? handleSendToPantry()
+            : handleUpdateOrderReceived()
+        }
       >
-        {orderDetails?.orderStatus == "ENTERED" ? `Send To Pantry` : `Save`}
+        {orderDetails?.orderStatus === "ENTERED" ? `Send To Pantry` : `Save`}
       </Button>
     </>
   );
@@ -514,17 +465,13 @@ export default function Page() {
           <div className="float-end">
             <Button
               className="btn-outline me-2 fw-bold"
-              onClick={() => {
-                router.push("/history");
-              }}
+              onClick={() => router.push("/history")}
             >
               History
             </Button>
             <Button
               className="btn-filled"
-              onClick={() => {
-                router.push("/config");
-              }}
+              onClick={() => router.push("/config")}
             >
               New orders
             </Button>
@@ -541,16 +488,13 @@ export default function Page() {
       </Row>
       <Modal
         show={showOrderDetails}
-        onHide={() => {
-          setShowOrderDetails(false);
-        }}
+        onHide={() => setShowOrderDetails(false)}
         fullscreen
         backdrop="static"
       >
         <Modal.Header className="p-2">
           <Modal.Title className="font-14">Order Details</Modal.Title>
         </Modal.Header>
-
         <Modal.Body>
           <div className="d-flex align-items-center justify-content-between">
             <p className="font-24 fw-bold">Order ID: {orderDetails?.orderId}</p>
@@ -559,7 +503,7 @@ export default function Page() {
           <div className="mt-4">
             <Datatable<OrderItem>
               columns={
-                orderDetails?.orderStatus == "ENTERED"
+                orderDetails?.orderStatus === "ENTERED"
                   ? entryOrderDetailColumns
                   : orderDetailColumns
               }

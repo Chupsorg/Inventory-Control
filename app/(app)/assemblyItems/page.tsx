@@ -80,14 +80,9 @@ export default function Page() {
 
         const isDifferent =
           isStorageDifferent || isQtyDifferent || isChefDifferent;
-
         const filtered = prevModified.filter((item) => item.id !== newItem.id);
 
-        if (isDifferent) {
-          return [...filtered, newItem];
-        } else {
-          return filtered;
-        }
+        return isDifferent ? [...filtered, newItem] : filtered;
       });
     },
     [originalItemsList]
@@ -162,7 +157,6 @@ export default function Page() {
     [updateModifiedList]
   );
 
-  // Added chefList and handleSelectChef to dependencies to ensure dropdown populates correctly
   const columns: TableColumn<AssemblyItem>[] = useMemo(
     () => [
       {
@@ -189,7 +183,7 @@ export default function Page() {
       },
       {
         name: "Prepared By",
-        selector: (row) => row.preparedByList,
+        selector: (row) => row.preparedByList?.[0]?.preparedBy || "-",
         sortable: true,
         cell: (row) => (
           <Form.Select
@@ -208,7 +202,7 @@ export default function Page() {
       },
       {
         name: "Storage Type",
-        selector: (row) => row.storageType,
+        selector: (row) => row.storageType || "N/A",
         sortable: true,
         cell: (row) => (
           <Form.Select
@@ -244,64 +238,44 @@ export default function Page() {
 
   useEffect(() => {
     const handleGetAssemblyItems = async () => {
-      // 1. Fetch Chefs
       try {
-        let res = await callApi({
+        let resChefs = await callApi({
           url: `StoreCtl/get-assembly-items-chefs-list`,
         }).unwrap();
+        if (resChefs.status) setChefList(resChefs.object as Chef[]);
 
-        if (res.status) {
-          setChefList(res.object as Chef[]);
-        } else {
-          // alert(res.message);
-        }
-      } catch (error) {
-        console.error("API error fetching chefs", error);
-      }
-
-      // 2. Fetch Items
-      try {
-        let res = await callApi({
+        let resItems = await callApi({
           url: `StoreCtl/get-kitchen-assembly-items-list/${loginDetails?.cloudKitchenId}`,
         }).unwrap();
 
-        if (res.status) {
+        if (resItems.status) {
           const updatedData: AssemblyItem[] =
-            (res.object as AssemblyItem[])?.map(
+            (resItems.object as AssemblyItem[])?.map(
               (order: AssemblyItem, index: number) => ({
                 ...order,
                 id: index + 1,
               })
             ) ?? [];
-
           setAssemblyItemsList(updatedData);
           setOriginalItemsList(JSON.parse(JSON.stringify(updatedData)));
           setModifiedItems([]);
-        } else {
-          alert(res.message);
         }
       } catch (error) {
-        console.error("API error fetching items", error);
+        console.error("API error", error);
       }
     };
 
-    if (rehydrated && loginDetails) {
-      handleGetAssemblyItems();
-    }
+    if (rehydrated && loginDetails) handleGetAssemblyItems();
   }, [rehydrated, loginDetails, callApi]);
 
   const handleUpdateAssemblyItems = async () => {
     try {
-      if (modifiedItems.length === 0) {
-        alert("No changes to apply.");
-        return;
-      }
+      if (modifiedItems.length === 0) return;
 
-      // Explicitly map payload
       const payload = modifiedItems.map((item) => ({
         ...item,
-        qty: item.measQty, // Mapping required by backend
-        chefIdList: item.preparedByList.map(chef => chef.id)
+        qty: item.measQty,
+        chefIdList: item.preparedByList.map((chef) => chef.id),
       }));
 
       let res = await callApi({
@@ -311,16 +285,12 @@ export default function Page() {
 
       if (res.status) {
         alert("Assembly items updated successfully.");
-        // Update the original list to match the current state on success
-        if (assemblyItemsList) {
+        if (assemblyItemsList)
           setOriginalItemsList(JSON.parse(JSON.stringify(assemblyItemsList)));
-        }
         setModifiedItems([]);
-      } else {
-        alert(res.message);
       }
     } catch (error) {
-      console.error("API error updating items", error);
+      console.error("Update error", error);
     }
   };
 
@@ -333,14 +303,11 @@ export default function Page() {
             height={24}
             width={24}
             alt={"backicon"}
-            onClick={() => {
-              router.push("/orders");
-            }}
+            onClick={() => router.push("/orders")}
             style={{ cursor: "pointer" }}
           />
           <h3 className="font-24 fw-bold m-0 ms-3">Assembly Items</h3>
         </Col>
-
         <Col xs={12} md={4} lg={3}>
           <Form.Control
             type="search"
@@ -350,7 +317,6 @@ export default function Page() {
           />
         </Col>
       </Row>
-
       <Row className="mt-4">
         <Datatable<AssemblyItem>
           columns={columns}
@@ -361,18 +327,14 @@ export default function Page() {
       </Row>
       <Col className="d-flex justify-content-end mt-4">
         <Button
-          className="btn-outline float-end me-3 py-2 px-5"
-          onClick={() => {
-            router.back();
-          }}
+          className="btn-outline me-3 py-2 px-5"
+          onClick={() => router.back()}
         >
           Cancel
         </Button>
         <Button
-          className="btn-filled float-end py-2 px-5"
-          onClick={() => {
-            handleUpdateAssemblyItems();
-          }}
+          className="btn-filled py-2 px-5"
+          onClick={handleUpdateAssemblyItems}
           disabled={modifiedItems.length === 0}
         >
           Apply ({modifiedItems.length})
