@@ -292,6 +292,28 @@ const PrimaryItemGroup = ({
         ),
       },
       {
+        name: "Event/Bundle",
+        selector: (row) => row.mainItemName,
+        sortable: true,
+        width: "250px",
+        center: true,
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.platform == "Event" || row.itemCode !== row.mainItemCode
+              ? row.mainItemName
+              : "-"}
+          </span>
+        ),
+      },
+      {
         name: "Item",
         selector: (row) => row.itemName,
         width: "250px",
@@ -413,26 +435,6 @@ const PrimaryItemGroup = ({
           </span>
         ),
       },
-      {
-        name: "Event/Bundle",
-        selector: (row) => (row.platform == "Event" ? row.mainItemName : "-"),
-        sortable: true,
-        width: "250px",
-        center: true,
-        cell: (row) => (
-          <span
-            className={`${
-              row.itemQty < row.rcomQty
-                ? "text-green"
-                : row.itemQty > row.rcomQty
-                ? "text-secondary"
-                : ""
-            }`}
-          >
-            {row.platform == "Event" ? row.mainItemName : row.itemCode !== row.mainItemCode ? row.mainItemName : "-"}
-          </span>
-        ),
-      }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [groupIndex, filteredItems, isAllVisibleSelected, dispatch]
@@ -442,6 +444,8 @@ const PrimaryItemGroup = ({
     id: item.id,
     momName: item.momName,
     itemName: item.itemName,
+    itemCode: item.itemCode,
+    mainItemCode: item.mainItemCode,
     platform: item.platform,
     mainItemName: item.mainItemName,
     vegType: item.vegType,
@@ -788,6 +792,8 @@ export default function Page() {
                 id: i + 1,
                 checked: false,
                 rcomQty: itm.itemQty,
+                itemCode: itm.itemCode,
+                mainItemCode: itm.mainItemCode
               })),
             };
           });
