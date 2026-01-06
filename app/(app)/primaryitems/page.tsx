@@ -33,7 +33,9 @@ import {
 type OrderRow = {
   id: number;
   momName: string;
+  itemCode: number;
   itemName: string;
+  mainItemCode: number;
   mainItemName: string;
   vegType: "Veg" | "Non-Veg";
   platform: string;
@@ -357,7 +359,7 @@ const PrimaryItemGroup = ({
         ),
       },
       {
-        name: "Event",
+        name: "Event/Bundle",
         selector: (row) => (row.platform == "Event" ? row.mainItemName : "-"),
         sortable: true,
         width: "250px",
@@ -372,7 +374,7 @@ const PrimaryItemGroup = ({
                 : ""
             }`}
           >
-            {row.platform == "Event" ? row.mainItemName : "-"}
+            {row.platform == "Event" ? row.mainItemName : row.itemCode !== row.mainItemCode ? row.mainItemName : "-"}
           </span>
         ),
       }
