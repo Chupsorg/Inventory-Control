@@ -32,6 +32,7 @@ import {
 
 type OrderRow = {
   id: number;
+  momName: string;
   itemName: string;
   mainItemName: string;
   vegType: "Veg" | "Non-Veg";
@@ -83,6 +84,9 @@ const PrimaryItemGroup = ({
       if (item.itemName?.toLowerCase().includes(lower)) {
         set.add(item.itemName);
       }
+      if (item.momName?.toLowerCase().includes(lower)) {
+        set.add(item.momName);
+      }
       if (item.platform?.toLowerCase().includes(lower)) {
         set.add(item.platform);
       }
@@ -110,6 +114,7 @@ const PrimaryItemGroup = ({
         }
         return (
           item.itemName?.toLowerCase().includes(lower) ||
+          item.momName?.toLowerCase().includes(lower) ||
           item.platform?.toLowerCase().includes(lower) ||
           item.mainItemName?.toLowerCase().includes(lower)
         );
@@ -211,6 +216,25 @@ const PrimaryItemGroup = ({
         ),
       },
       {
+        name: "Mom",
+        selector: (row) => row.momName,
+        width: "130px",
+        sortable: true,
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.momName}
+          </span>
+        ),
+      },
+      {
         name: "Item",
         selector: (row) => row.itemName,
         width: "250px",
@@ -230,9 +254,8 @@ const PrimaryItemGroup = ({
         ),
       },
       {
-        name: "Platform",
-        selector: (row) => row.platform,
-        sortable: true,
+        name: "UOM",
+        width: "100px",
         center: true,
         cell: (row) => (
           <span
@@ -244,46 +267,7 @@ const PrimaryItemGroup = ({
                 : ""
             }`}
           >
-            {row.platform ? row.platform : "-"}
-          </span>
-        ),
-      },
-      {
-        name: "Event",
-        selector: (row) => (row.platform == "Event" ? row.mainItemName : "-"),
-        sortable: true,
-        width: "250px",
-        center: true,
-        cell: (row) => (
-          <span
-            className={`${
-              row.itemQty < row.rcomQty
-                ? "text-green"
-                : row.itemQty > row.rcomQty
-                ? "text-secondary"
-                : ""
-            }`}
-          >
-            {row.platform == "Event" ? row.mainItemName : "-"}
-          </span>
-        ),
-      },
-      {
-        name: "Food Type",
-        selector: (row) => row.vegType,
-        sortable: true,
-        center: true,
-        cell: (row) => (
-          <span
-            className={`${
-              row.itemQty < row.rcomQty
-                ? "text-green"
-                : row.itemQty > row.rcomQty
-                ? "text-secondary"
-                : ""
-            }`}
-          >
-            {row.vegType}
+            {`${row?.itemMeasQty}${row?.itemMeasDesc}`}
           </span>
         ),
       },
@@ -335,8 +319,9 @@ const PrimaryItemGroup = ({
         ),
       },
       {
-        name: "UOM",
-        width: "100px",
+        name: "Food Type",
+        selector: (row) => row.vegType,
+        sortable: true,
         center: true,
         cell: (row) => (
           <span
@@ -348,10 +333,49 @@ const PrimaryItemGroup = ({
                 : ""
             }`}
           >
-            {`${row?.itemMeasQty}${row?.itemMeasDesc}`}
+            {row.vegType}
           </span>
         ),
       },
+      {
+        name: "Platform",
+        selector: (row) => row.platform,
+        sortable: true,
+        center: true,
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.platform ? row.platform : "-"}
+          </span>
+        ),
+      },
+      {
+        name: "Event",
+        selector: (row) => (row.platform == "Event" ? row.mainItemName : "-"),
+        sortable: true,
+        width: "250px",
+        center: true,
+        cell: (row) => (
+          <span
+            className={`${
+              row.itemQty < row.rcomQty
+                ? "text-green"
+                : row.itemQty > row.rcomQty
+                ? "text-secondary"
+                : ""
+            }`}
+          >
+            {row.platform == "Event" ? row.mainItemName : "-"}
+          </span>
+        ),
+      }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [groupIndex, filteredItems, isAllVisibleSelected, dispatch]
@@ -359,6 +383,7 @@ const PrimaryItemGroup = ({
 
   const orderRows: OrderRow[] = filteredItems.map((item: any) => ({
     id: item.id,
+    momName: item.momName,
     itemName: item.itemName,
     platform: item.platform,
     mainItemName: item.mainItemName,
@@ -644,6 +669,7 @@ export default function Page() {
 
     const newItem = {
       id: 0,
+      momName: selectedItem.momName || "",
       itemName: selectedItem.itemName,
       itemCode: selectedItem.itemCode,
       mainItemCode: 0,
@@ -725,11 +751,11 @@ export default function Page() {
   }, [config, loginDetails, isFetched, availableItems?.length]);
 
   // Ensure first tab is selected once data loads
-  useEffect(() => {
-    if (primaryItemList && primaryItemList.length > 0) {
-      setKey(0);
-    }
-  }, [primaryItemList]);
+  // useEffect(() => {
+  //   if (primaryItemList && primaryItemList.length > 0) {
+  //     setKey(0);
+  //   }
+  // }, [primaryItemList]);
 
   return (
     <Container fluid className="p-4">

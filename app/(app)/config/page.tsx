@@ -327,6 +327,32 @@ export default function Page() {
   //   })}`;
   // }, [stockDate]);
 
+  const updateRowDateRange = (
+    index: number,
+    range: DateObject[]
+  ) => {
+    if (!Array.isArray(range) || range.length !== 2) return;
+
+    let [start, end] = range;
+
+    // normalize
+    if (start.toDate() > end.toDate()) {
+      [start, end] = [end, start];
+    }
+
+    setDeliveryDates(prev =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+            ...item,
+            date_range: [start, end],
+            custom_date_range: [],
+          }
+          : item
+      )
+    );
+  };
+
   const isDayAlreadyUsed = (day: DeliveryDate["day"], currentIndex: number) => {
     return deliveryDates.some(
       (item, index) => item.day === day && index !== currentIndex
@@ -337,8 +363,8 @@ export default function Page() {
     dateRange: DateObject[],
     days: DayCode[]
   ): boolean => {
-    if (!days.length) return false;
-    if (!dateRange || dateRange.length !== 2) return false;
+    if (!Array.isArray(dateRange) || dateRange.length !== 2) return false;
+    if (!Array.isArray(days) || days.length === 0) return false;
 
     let [start, end] = dateRange;
 
@@ -346,16 +372,15 @@ export default function Page() {
       [start, end] = [end, start];
     }
 
-    const daysInRange = new Set<DayCode>();
-    let current = new Date(start.toDate());
-    const endDate = end.toDate();
+    const allowedDays = new Set<DayCode>();
+    const cursor = new Date(start.toDate());
 
-    while (current <= endDate) {
-      daysInRange.add(getDayCodeFromDate(current));
-      current.setDate(current.getDate() + 1);
+    while (cursor <= end.toDate()) {
+      allowedDays.add(DAY_CODE_MAP[cursor.getDay()]);
+      cursor.setDate(cursor.getDate() + 1);
     }
 
-    return days.every(day => daysInRange.has(day));
+    return days.every(d => allowedDays.has(d));
   };
 
   const handleSaveConfig = async () => {
@@ -363,16 +388,19 @@ export default function Page() {
       alert('Please upload stock file to proceed!')
       return;
     }
-    const invalidItem = deliveryDates.find(item =>
-      !areAllSelectedDaysInRange(item.date_range, item.days)
-    );
+    const invalidItem = deliveryDates.find(item => {
+      if (!item.date_range || item.date_range.length !== 2) return true;
+      if (!item.days || item.days.length === 0) return true;
+      return !areAllSelectedDaysInRange(item.date_range, item.days);
+    });
 
     if (invalidItem) {
       alert(
-        `One or more selected days do not fall within the selected date range for ${invalidItem.day}`
+        `Invalid sales date range or day selection for ${invalidItem.day}`
       );
       return;
     }
+
       try {
         let params = {
           data_id: configDataId,
@@ -671,42 +699,9 @@ export default function Page() {
               </div>
             </div>
             <div className="border-bottom p-3">
-              <div className="d-flex align-items-center mb-2">
+              <div className="d-flex align-items-center">
                 <h4 className="font-16 fw-bold me-3 m-0">Sales Data</h4>
-                <DatePicker
-                  range
-                  value={deliveryDates[0]?.date_range}
-                  disabled={uploadloader}
-                  onChange={(value) => {
-                    setDeliveryDates(prev =>
-                      prev.map(item => ({
-                        ...item,
-                        date_range: value as DateObject[]
-                      }))
-                    );
-                  }}
-                  placeholder="Date range"
-                  format="DD MMM, YYYY"
-                  maxDate={new DateObject().subtract(1, "day")}
-                  render={(value, openCalendar) => (
-                    <div
-                      className="custom-date-input"
-                      onClick={!uploadloader ? openCalendar : undefined}
-                      style={{
-                        cursor: uploadloader ? "not-allowed" : "pointer",
-                        opacity: uploadloader ? 0.6 : 1,
-                      }}
-                    >
-                      <input
-                        type="text"
-                        readOnly
-                        value={value}
-                        placeholder="Date range"
-                        disabled={uploadloader}
-                      />
-                    </div>
-                  )}
-                />
+                
               </div>
               {deliveryDates?.map((dates: DeliveryDate, index) => {
                 const formattedRange =
@@ -722,9 +717,10 @@ export default function Page() {
                     })}`
                     : "--";
                 return <div className="mb-3" key={index}>
-                  <p className="font-13 fw-bold">
+                  <div className="d-flex align-items-center mb-2">
+                  <p className="font-13 fw-bold m-0 me-2">
                     Sales Data for {getDayName(dates.date)} :
-                    <span className="text-secondary fw-normal">
+                    {/* <span className="text-secondary fw-normal">
                       {" "}
                       {dates.custom_date_range.length > 0
                         ? dates.custom_date_range.length === 2
@@ -743,15 +739,43 @@ export default function Page() {
                               })}`
                           : ""
                         : formattedRange}
-                    </span>
+                    </span> */}
                   </p>
+                    <DatePicker
+                      range
+                      value={dates?.date_range}
+                      disabled={uploadloader}
+                      onChange={(value) => updateRowDateRange(index, value as DateObject[])}
+                      placeholder="Date range"
+                      format="DD MMM, YYYY"
+                      maxDate={new DateObject().subtract(1, "day")}
+                      render={(value, openCalendar) => (
+                        <div
+                          className="custom-date-input"
+                          onClick={!uploadloader ? openCalendar : undefined}
+                          style={{
+                            cursor: uploadloader ? "not-allowed" : "pointer",
+                            opacity: uploadloader ? 0.6 : 1,
+                          }}
+                        >
+                          <input
+                            type="text"
+                            readOnly
+                            value={value}
+                            placeholder="Date range"
+                            disabled={uploadloader}
+                          />
+                        </div>
+                      )}
+                    />
+                </div>
                   <div className="d-flex flex-wrap align-items-center">
                     {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map(
                       (day) => (
                         <div className="d-flex me-3" key={day}>
                           <Form.Check
                             type="checkbox"
-                            disabled={uploadloader}
+                            disabled={uploadloader || dates.date_range.length !== 2}
                             id={`custom-check-${dates.day}-${day}`}
                             className="rb-orange-check"
                             checked={dates.days?.includes(day as DayCode)}
