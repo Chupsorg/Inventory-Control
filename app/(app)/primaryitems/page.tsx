@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/app/store";
 import { useCallApiMutation } from "@/app/store/services/apiSlice";
@@ -29,6 +29,8 @@ import {
   addItemToGroup,
   setAvailableItems,
 } from "@/app/store/features/primaryItemsSlice";
+import { exportToExcel } from "@/app/utils/exportToExcel";
+import { getConfigSignature } from "@/app/utils/reducerSignature";
 
 type OrderRow = {
   id: number;
@@ -47,6 +49,19 @@ type OrderRow = {
   groupIndex: number;
   checked: boolean;
 };
+type PrimaryItemExcelRow = {
+  id: number;
+  momName: string;
+  itemName: string;
+  itemCode: number;
+  mainItemName: string;
+  vegType: string;
+  platform: string;
+  itemQty: number;
+  rcomQty: number | "";
+  uom: string;
+};
+
 
 const PrimaryItemGroup = ({
   groupIndex,
@@ -162,7 +177,7 @@ const PrimaryItemGroup = ({
   };
 
   const handleLocalBulkUpdate = () => {
-    if (!bulkValue) return;
+    if (bulkValue === "") return;
     dispatch(
       applyMathToSelected({
         groupIndex,
@@ -173,6 +188,46 @@ const PrimaryItemGroup = ({
     );
     setBulkValue("");
   };
+
+  const handleDownloadExcel = useCallback(() => {
+    if (!items.length) return;
+
+    const exceldata: PrimaryItemExcelRow[] = items.map((item:any) => ({
+      id: item.id,
+      momName: item.momName || "-",
+      itemName: item.itemName,
+      itemCode: item.itemCode,
+      mainItemName: item.mainItemName || "-",
+      vegType: item.vegType,
+      platform: item.platform || "-",
+      itemQty: item.itemQty,
+      rcomQty: item.rcomQty ?? "",
+      uom: `${item.itemMeasQty} ${item.itemMeasDesc}`,
+    }));
+
+    exportToExcel(
+      [
+        {
+          sheetName: getDayName(new Date(con.config.date)),
+          data: exceldata,
+          columns: [
+            { header: "#", key: "id" },
+            { header: "Mom", key: "momName" },
+            { header: "Item Name", key: "itemName" },
+            { header: "Item Code", key: "itemCode" },
+            { header: "Event / Bundle", key: "mainItemName" },
+            { header: "Food Type", key: "vegType" },
+            { header: "Platform", key: "platform" },
+            { header: "Previous Orders", key: "itemQty" },
+            { header: "Recommended Orders", key: "rcomQty" },
+            { header: "UOM", key: "uom" },
+          ],
+        },
+      ],
+      `Primary_Items_${getDayName(new Date(con.config.date))}`
+    );
+  }, [items, con.config.date]);
+
 
   const columns: TableColumn<OrderRow>[] = useMemo(
     () => [
@@ -313,7 +368,7 @@ const PrimaryItemGroup = ({
                 updateItemQty({
                   groupIndex,
                   itemId: row.id,
-                  qty: Number(e.target.value),
+                  qty: e.target.value === "" ? "" : Number(e.target.value),
                 })
               )
             }
@@ -424,7 +479,13 @@ const PrimaryItemGroup = ({
               {formatDate(con.config.date as string)}
             </p>
           </div>
-          <div>
+          <div className="d-flex">
+            <Button
+              className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
+            onClick={handleDownloadExcel}
+            >
+              Download as excel
+            </Button>
             <div className="d-flex align-items-center gap-2 mt-2">
               <Form.Select
                 size="sm"
@@ -586,7 +647,7 @@ const PrimaryItemGroup = ({
                   size="sm"
                   className="btn-filled py-0 font-12"
                   onClick={handleLocalBulkUpdate}
-                  disabled={!bulkValue}
+                  disabled={bulkValue === ""}
                 >
                   Apply
                 </Button>
@@ -620,8 +681,14 @@ export default function Page() {
   const {
     list: primaryItemList,
     isFetched,
+    lastConfigSignature,
     availableItems,
   } = useSelector((state: RootState) => state.primaryItems);
+
+  const currentConfigSignature = useMemo(
+  () => getConfigSignature(config),
+  [config]
+);
 
   const [filterModal, setfilterModal] = useState(false);
   const [filterType, setFilterType] = useState<"online" | "event">("event");
@@ -697,7 +764,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!loginDetails || !config?.length) return;
-
+    if (lastConfigSignature === currentConfigSignature) return;
     const fetchAll = async () => {
       // 1. Fetch Primary Items (Main Table) if not yet fetched
       if (!isFetched) {
@@ -725,7 +792,7 @@ export default function Page() {
             };
           });
 
-          dispatch(setPrimaryItems(result as any));
+          dispatch(setPrimaryItems({ data: result as any, configSignature: currentConfigSignature }));
         } catch (err) {
           console.error(err);
         }
@@ -750,7 +817,7 @@ export default function Page() {
 
     fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config, loginDetails, isFetched, availableItems?.length]);
+  }, [config, loginDetails, isFetched, availableItems?.length,lastConfigSignature,currentConfigSignature,]);
 
   // Ensure first tab is selected once data loads
   // useEffect(() => {

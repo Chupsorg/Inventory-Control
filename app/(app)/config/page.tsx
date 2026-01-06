@@ -12,7 +12,7 @@ import {
 } from "react-bootstrap";
 import DatePicker, { DateObject } from "react-multi-date-picker";
 import { useDispatch, useSelector } from "react-redux";
-import type { RootState } from "@/app/store";
+import { store, type RootState } from "@/app/store";
 import {
   getComingWeekday,
   getDateRange,
@@ -24,6 +24,7 @@ import { clearConfig, setConfig } from "@/app/store/features/configSlice";
 import { TableColumn } from "react-data-table-component";
 import Datatable from "@/app/components/Datatable";
 import { clearPrimaryItems } from "@/app/store/features/primaryItemsSlice";
+import { getConfigSignature } from "@/app/utils/reducerSignature";
 
 type DayCode = "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
 type DeliveryDate = {
@@ -414,7 +415,13 @@ export default function Page() {
           body: params as any,
         }).unwrap();
         if (res.status) {
-          dispatch(clearPrimaryItems([] as any));
+          const newSignature = getConfigSignature(deliveryDates);
+          const oldSignature = store.getState().primaryItems.lastConfigSignature;
+
+          //CLEAR ONLY IF CONFIG ACTUALLY CHANGED
+          if (newSignature !== oldSignature) {
+            dispatch(clearPrimaryItems());
+          }
           dispatch(setConfig(deliveryDates));
           router.push("/primaryitems");
         } else {
@@ -422,6 +429,7 @@ export default function Page() {
           console.log(res.message);
         }
       } catch (err) {
+        console.log(err)
         alert("error");
       }
   };

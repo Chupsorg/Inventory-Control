@@ -16,21 +16,30 @@ interface PrimaryItemsState {
   list: PrimaryGroup[];
   isFetched: boolean;
   availableItems: any[];
+  lastConfigSignature: string | null;
 }
 
 const initialState: PrimaryItemsState = {
   list: [],
   isFetched: false,
   availableItems: [],
+  lastConfigSignature: null,
 };
 
 const primaryItemsSlice = createSlice({
   name: "primaryItems",
   initialState,
   reducers: {
-    setPrimaryItems(state, action: PayloadAction<PrimaryGroup[]>) {
-      state.list = action.payload;
+    setPrimaryItems(
+      state,
+      action: PayloadAction<{
+        data: PrimaryGroup[];
+        configSignature: string;
+      }>
+    ) {
+      state.list = action.payload.data;
       state.isFetched = true;
+      state.lastConfigSignature = action.payload.configSignature;
     },
     setAvailableItems: (state, action) => {
       state.availableItems = action.payload;
@@ -59,7 +68,7 @@ const primaryItemsSlice = createSlice({
 
     updateItemQty(
       state,
-      action: PayloadAction<{ groupIndex: number; itemId: number; qty: number }>
+      action: PayloadAction<{ groupIndex: number; itemId: number; qty: number | "" }>
     ) {
       const group = state.list[action.payload.groupIndex];
       const item = group.items.find((i) => i.id === action.payload.itemId);
@@ -126,27 +135,28 @@ const primaryItemsSlice = createSlice({
       const { groupIndex, operator, value, mode } = action.payload;
       const group = state.list[groupIndex];
 
-      if (group) {
-        group.items.forEach((item) => {
-          if (item.checked) {
-            const currentQty = (item.rcomQty as number) || 0;
-            let delta = 0;
-            if (mode === "PERCENT") {
-              delta = (currentQty * value) / 100;
-            } else {
-              delta = value;
-            }
-            let newQty = currentQty;
-            if (operator === "+") {
-              newQty = currentQty + delta;
-            } else {
-              newQty = currentQty - delta;
-            }
+      if (!group) return;
 
-            item.rcomQty = Math.max(0, Math.round(newQty));
-          }
-        });
-      }
+      group.items.forEach((item) => {
+        if (!item.checked) return;
+
+        const currentQty = (item.rcomQty as number) || 0;
+
+        // VALUE mode = SET
+        if (mode === "VALUE") {
+          item.rcomQty = Math.max(0, Math.round(value));
+          return;
+        }
+
+        // PERCENT mode = +/- %
+        const delta = (currentQty * value) / 100;
+        let newQty =
+          operator === "+"
+            ? currentQty + delta
+            : currentQty - delta;
+
+        item.rcomQty = Math.max(0, Math.round(newQty));
+      });
     },
     addItemToGroup: (state, action) => {
       const { groupIndex, item } = action.payload;
