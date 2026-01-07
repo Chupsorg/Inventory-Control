@@ -7,7 +7,7 @@ type ENV = "DEV" | "QA" | "PROD";
    CURRENT ENV (SAFE)
 ================================ */
 const CURRENT_ENV: ENV =
-  (process.env.NEXT_PUBLIC_ENV as ENV) || "PROD";
+  (process.env.NEXT_PUBLIC_ENV as ENV) || "DEV";
 
 /* ================================
    BASE URL CONFIG (YOUR STYLE)

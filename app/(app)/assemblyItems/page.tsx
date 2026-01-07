@@ -8,8 +8,11 @@ import Image from "next/image";
 import { useCallApiMutation } from "@/app/store/services/apiSlice";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/store";
+import { exportToExcel } from "@/app/utils/exportToExcel";
+import { log } from "console";
 
 interface Chef {
+  name: string;
   id: number;
   preparedBy: string;
 }
@@ -25,6 +28,15 @@ interface AssemblyItem {
   itemType: string;
   maxQty: number;
   storageType: "FRIDGE" | "FREEZER" | "OTHER";
+}
+interface AssemblyItemExcelRow {
+  id?: number;
+  itemCode: number;
+  itemName: string;
+  uom: string;
+  preparedBy: string;
+  storageType: string;
+  maxQty: number;
 }
 
 export default function Page() {
@@ -293,6 +305,37 @@ export default function Page() {
       console.error("Update error", error);
     }
   };
+  const handleDownloadExcel = () => {
+    if (!filteredItems.length) return;
+
+    const exceldata: AssemblyItemExcelRow[] = filteredItems.map((item) => ({
+      id: item.id,
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      uom: `${item.measQty} ${item.uom}`,
+      preparedBy: item.preparedByList?.[0]?.name || "-",
+      storageType: item.storageType || "N/A",
+      maxQty: item.maxQty,
+    }));
+    exportToExcel(
+      [
+        {
+          sheetName: "Assembly Items",
+          data: exceldata,
+          columns: [
+            { header: "#", key: "id" },
+            { header: "Item Name", key: "itemName" },
+            { header: "Item Code", key: "itemCode" },
+            { header: "UOM", key: "uom" },
+            { header: "Prepared By", key: "preparedBy" },
+            { header: "storageType", key: "storageType" },
+            { header: "maxQty", key: "maxQty" },
+          ],
+        },
+      ],
+      `Assembly_Items`
+    );
+  }
 
   return (
     <Container fluid className="p-4">
@@ -308,13 +351,21 @@ export default function Page() {
           />
           <h3 className="font-24 fw-bold m-0 ms-3">Assembly Items</h3>
         </Col>
-        <Col xs={12} md={4} lg={3}>
+        <Col xs={12} md={4} className="d-flex">
           <Form.Control
             type="search"
             placeholder="Search items..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
           />
+          <Button
+            className="btn-outline text-capitalize mb-1 mb-md-0 ms-2"
+            onClick={handleDownloadExcel}
+            disabled={!filteredItems.length}
+            style={{height:"38px",width:"300px !important"}}
+          >
+            Download as excel
+          </Button>
         </Col>
       </Row>
       <Row className="mt-4">

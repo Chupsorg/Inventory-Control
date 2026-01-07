@@ -179,17 +179,18 @@ export default function Page() {
       const val = Number(ui.qtyValue);
 
       filtered = filtered.filter((i) => {
+        const qty = Number(i.reqQty || 0);
         switch (ui.qtyCondition) {
           case "<":
-            return i.reqQty < val;
+            return qty < val;
           case ">":
-            return i.reqQty > val;
+            return qty > val;
           case "<=":
-            return i.reqQty <= val;
+            return qty <= val;
           case ">=":
-            return i.reqQty >= val;
+            return qty >= val;
           case "=":
-            return i.reqQty == val;
+            return qty == val;
           default:
             return true;
         }
@@ -357,7 +358,8 @@ export default function Page() {
             }`}
             value={row.reqQty}
             onChange={(e) => {
-              const qty = Math.max(0, Number(e.target.value));
+              const val = e.target.value;
+              const qty = val === "" ? "" : Math.max(0, Number(val));
               setcartItem((prev) =>
                 prev.map((grp, i) =>
                   i === groupIndex
@@ -451,8 +453,9 @@ export default function Page() {
           } else {
             delta = value;
           }
+          const baseQty = Number(itm.reqQty || 0);
           let newQty =
-            ui.bulkOperator === "+" ? itm.reqQty + delta : itm.reqQty - delta;
+            ui.bulkOperator === "+" ? baseQty + delta : baseQty - delta;
           newQty = Math.max(0, Math.round(newQty));
           return { ...itm, reqQty: newQty };
         });
@@ -605,7 +608,7 @@ export default function Page() {
     const array: any[] = [];
     const array1: any[] = [];
     cartItem?.items?.map((itm: any) => {
-      if (itm.reqQty <= 0) return;
+      if (!itm.reqQty || Number(itm.reqQty) <= 0) return;
       array.push({
         menuId: 0,
         cgyId: 0,

@@ -705,6 +705,8 @@ export default function Page() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [itemSearchText, setItemSearchText] = useState("");
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
+  const [stockDataId, setstockDataId] = useState<number | null>(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   const filteredItemList = useMemo(() => {
     const search = itemSearchText.toLowerCase().trim();
@@ -717,9 +719,23 @@ export default function Page() {
       return name.includes(search) || code.includes(search);
     });
   }, [availableItems, itemSearchText]);
+  const normalizeDate = (d: any) => {
+    if (!d) return null;
 
+    // react-multi-date-picker DateObject
+    if (typeof d.toDate === "function") {
+      return d.toDate();
+    }
+
+    // ISO string or Date
+    return new Date(d);
+  };
   const buildPrimaryItemPayload = (cfg: any) => {
-    const hasRange = cfg.date_range && cfg.date_range.length === 2;
+    const hasRange = Array.isArray(cfg.date_range) && cfg.date_range.length === 2;
+
+  const start = hasRange ? normalizeDate(cfg.date_range[0]) : null;
+  const end = hasRange ? normalizeDate(cfg.date_range[1]) : null;
+    console.log(cfg)
     return {
       cloud_kitchen_id: loginDetails?.cloudKitchenId,
       delivery_date: new Date(cfg.date).toISOString().split("T")[0],
@@ -728,11 +744,11 @@ export default function Page() {
       // sale_dates: cfg.custom_date_range,
       sale_dates: [],
       start_date: hasRange
-        ? cfg.date_range[0].toDate().toISOString().split("T")[0]
+        ? start ? start.toISOString().split("T")[0] : null
         : null,
 
       end_date: hasRange
-        ? cfg.date_range[1].toDate().toISOString().split("T")[0]
+        ? end ? end.toISOString().split("T")[0] : null
         : null,
     };
   };
@@ -768,62 +784,130 @@ export default function Page() {
 
   useEffect(() => {
     if (!loginDetails || !config?.length) return;
-    if (lastConfigSignature === currentConfigSignature) return;
+    
     const fetchAll = async () => {
-      // 1. Fetch Primary Items (Main Table) if not yet fetched
-      if (!isFetched) {
-        try {
-          const responses = await Promise.all(
-            config.map((cfg: any) =>
-              callApi({
-                url: "StoreCtl/get-inventory-primary-items-list",
-                body: buildPrimaryItemPayload(cfg) as any,
-              }).unwrap()
-            )
-          );
+      try {
+        const isConfigChanged = lastConfigSignature && lastConfigSignature !== currentConfigSignature;
 
-          const result = responses.map((res, index) => {
-            const itemsArray = Array.isArray(res.object) ? res.object : [];
+        const orderRes = await callApi({
+          url: `StoreCtl/get-inventory-data/ORDER/${loginDetails.cloudKitchenId}`,
+        }).unwrap();
+        if (orderRes?.status && Array.isArray(orderRes.object) && orderRes.object.length > 0) {
+          if (!isConfigChanged) {
+            const serverData = orderRes.object[0]?.dataValue;
 
-            return {
-              config: config[index],
-              items: itemsArray.map((itm: any, i: number) => ({
-                ...itm,
-                id: i + 1,
-                checked: false,
-                rcomQty: itm.itemQty,
-                itemCode: itm.itemCode,
-                mainItemCode: itm.mainItemCode
-              })),
-            };
-          });
-
-          dispatch(setPrimaryItems({ data: result as any, configSignature: currentConfigSignature }));
-        } catch (err) {
-          console.error(err);
-        }
-      }
-
-      // 2. Fetch Available/Kitchen Items (Dropdown) if empty
-      // We check availableItems.length so we don't re-fetch if they exist
-      if (!availableItems || availableItems.length === 0) {
-        try {
-          const res = await callApi({
-            url: `StoreCtl/get-kitchen-primary-items-list/${loginDetails?.cloudKitchenId}`,
-          }).unwrap();
-          if (res?.status) {
-            // Dispatch to Redux store instead of local state
-            dispatch(setAvailableItems((res.object as any) || []));
+            if (Array.isArray(serverData)) {
+              setstockDataId((orderRes.object as any)?.[0]?.dataId);
+              dispatch(
+                setPrimaryItems({
+                  data: serverData,
+                  configSignature: currentConfigSignature,
+                })
+              );
+            }
+          } else {
+            resetPrimaryItem(primaryItemList,(orderRes.object as any)?.[0]?.dataId)
+            handelGetPrimaryItems()
           }
-        } catch (error) {
-          console.error("Failed to fetch item list", error);
+        } else {
+          handelGetPrimaryItems()
         }
+
+        if (!availableItems || availableItems.length === 0) {
+          const res = await callApi({
+            url: `StoreCtl/get-kitchen-primary-items-list/${loginDetails.cloudKitchenId}`,
+          }).unwrap();
+
+          if (res?.status) {
+            dispatch(setAvailableItems(res.object || []));
+          }
+        }
+      } catch (err) {
+        console.error("Primary items fetch failed:", err);
       }
     };
 
     fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config, loginDetails, isFetched, availableItems?.length,lastConfigSignature,currentConfigSignature,]);
+  }, [loginDetails, config, currentConfigSignature, availableItems]);
+
+  const handelGetPrimaryItems = async () => {
+    const responses = await Promise.all(
+      config.map((cfg: any) =>
+        callApi({
+          url: "StoreCtl/get-inventory-primary-items-list",
+          body: buildPrimaryItemPayload(cfg) as any,
+        }).unwrap()
+      )
+    );
+
+    const result = responses.map((res, index) => {
+      const itemsArray = Array.isArray(res.object) ? res.object : [];
+
+      return {
+        config: config[index],
+        items: itemsArray.map((itm: any, i: number) => ({
+          ...itm,
+          id: i + 1,
+          checked: false,
+          rcomQty: itm.itemQty,
+          itemCode: itm.itemCode,
+          mainItemCode: itm.mainItemCode,
+        })),
+      };
+    });
+
+    dispatch(
+      setPrimaryItems({
+        data: result as any,
+        configSignature: currentConfigSignature,
+      })
+    );
+  }
+
+  const savePrimaryItems = async (primaryItems: any[]) => {
+    let params = {
+      data_id: stockDataId || 0,
+      cloud_kitchen_id: loginDetails?.cloudKitchenId,
+      data_type: "ORDER",
+      status: "A",
+      data_value: primaryItems,
+    }
+    return callApi({
+      url: `StoreCtl/save-or-update-inventory-data`,
+      body: params,
+    }).unwrap();
+  };
+
+  const handleNext = async () => {
+    if (isSaving) return;
+    try {
+      setIsSaving(true);
+      await savePrimaryItems(primaryItemList);
+      router.push("/cart");
+    } catch (err) {
+      alert("Failed to sync data");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+;
+  const resetPrimaryItem = async (primaryItems: any[],stockDataId:number) => {
+    let params = {
+      data_id: stockDataId,
+      cloud_kitchen_id: loginDetails?.cloudKitchenId,
+      data_type: "ORDER",
+      status: "D",
+      data_value: primaryItems,
+    }
+    const res = await callApi({
+      url: `StoreCtl/save-or-update-inventory-data`,
+      body: params,
+    }).unwrap();
+    if(res?.status){
+      setstockDataId(0);
+    }
+  };
 
   // Ensure first tab is selected once data loads
   // useEffect(() => {
@@ -853,10 +937,19 @@ export default function Page() {
           </div>
         </Col>
         <Col className="d-flex align-items-center justify-content-end">
-          <Button
-            className="btn-filled"
+          {stockDataId ? <Button
+            className="btn-outline me-2"
             onClick={() => {
-              router.push("/cart");
+              resetPrimaryItem(primaryItemList,stockDataId)
+            }}
+          >
+            Reset
+          </Button>:""}
+          <Button
+            className={`btn-filled ${isSaving ? "btn-loading" : ""}`}
+            disabled={isSaving}
+            onClick={() => {
+              handleNext()
             }}
           >
             Next
