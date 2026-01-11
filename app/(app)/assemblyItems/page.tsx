@@ -9,7 +9,6 @@ import { useCallApiMutation } from "@/app/store/services/apiSlice";
 import { useSelector } from "react-redux";
 import { RootState } from "@/app/store";
 import { exportToExcel } from "@/app/utils/exportToExcel";
-import { log } from "console";
 
 interface Chef {
   name: string;
@@ -287,7 +286,7 @@ export default function Page() {
       const payload = modifiedItems.map((item) => ({
         ...item,
         qty: item.measQty,
-        chefIdList: item.preparedByList.map((chef) => chef.id),
+        chefIdList: item.preparedByList?.map((chef) => chef.id) || [],
       }));
 
       let res = await callApi({
@@ -362,7 +361,7 @@ export default function Page() {
             className="btn-outline text-capitalize mb-1 mb-md-0 ms-2"
             onClick={handleDownloadExcel}
             disabled={!filteredItems.length}
-            style={{height:"38px",width:"300px !important"}}
+            // style={{height:"38px",width:"300px !important"}}
           >
             Download as excel
           </Button>
