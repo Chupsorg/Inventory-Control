@@ -420,6 +420,7 @@ export default function Page() {
 
           //CLEAR ONLY IF CONFIG ACTUALLY CHANGED
           if (newSignature !== oldSignature) {
+            sessionStorage.setItem("CONFIG_CHANGED", "true");
             dispatch(clearPrimaryItems());
           }
           dispatch(setConfig(deliveryDates));

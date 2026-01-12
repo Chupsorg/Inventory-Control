@@ -787,13 +787,14 @@ export default function Page() {
     
     const fetchAll = async () => {
       try {
-        const isConfigChanged = lastConfigSignature && lastConfigSignature !== currentConfigSignature;
+        // const isConfigChanged = lastConfigSignature && lastConfigSignature !== currentConfigSignature;
 
         const orderRes = await callApi({
           url: `StoreCtl/get-inventory-data/ORDER/${loginDetails.cloudKitchenId}`,
         }).unwrap();
         if (orderRes?.status && Array.isArray(orderRes.object) && orderRes.object.length > 0) {
-          if (!isConfigChanged) {
+          const configChangedByUser = sessionStorage.getItem("CONFIG_CHANGED") === "true";
+          if (!configChangedByUser) {
             const serverData = orderRes.object[0]?.dataValue;
 
             if (Array.isArray(serverData)) {
