@@ -759,7 +759,7 @@ export default function Page() {
 
   const start = hasRange ? normalizeDate(cfg.date_range[0]) : null;
   const end = hasRange ? normalizeDate(cfg.date_range[1]) : null;
-    // console.log(cfg)
+    console.log(cfg)
     return {
       cloud_kitchen_id: loginDetails?.cloudKitchenId,
       delivery_date: new Date(cfg.date).toISOString().split("T")[0],

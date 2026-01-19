@@ -152,7 +152,7 @@ export default function Page() {
                 day: DayCode;
                 date_range?: number[] | DateObject[];
               }) => {
-                const normalizedDate = new Date(con.date);
+                const normalizedDate = getComingWeekday(con.day);
 
                 if (Array.isArray(con.date_range) && con.date_range.length === 2) {
                   let start = new DateObject(new Date(con.date_range[0] as any));
