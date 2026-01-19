@@ -713,8 +713,9 @@ export default function Page() {
 
     primaryItemList.forEach((group: any) => {
       group.items.forEach((item: any) => {
-        const key = `${item.itemCode}-${item.itemMeasQty}${item.itemMeasDesc}`;
-        set.add(key);
+        set.add(
+          `${item.itemCode}_${item.itemMeasQty}_${item.itemMeasDesc}`
+        );
       });
     });
 
@@ -722,23 +723,25 @@ export default function Page() {
   }, [primaryItemList]);
 
   const filteredItemList = useMemo(() => {
-    const search = itemSearchText.toLowerCase().trim();
-
-    return (availableItems || []).filter((itm: any) => {
-      const name = (itm.itemName || "").toLowerCase();
-      const code = (itm.itemCode || "").toString().toLowerCase();
-
-      if (search && !name.includes(search) && !code.includes(search)) {
-        return false;
-      }
-
-      const key = `${itm.itemCode}-${itm.qty}${itm.uom}`;
-
-      if (showAllItem) return true;
-
-      return !existingPrimaryItemKeys.has(key);
-    });
-  }, [availableItems, itemSearchText, showAllItem, existingPrimaryItemKeys]);
+    let result = availableItems || [];
+    if (itemSearchText.trim()) {
+      const search = itemSearchText.toLowerCase();
+      result = result.filter((itm: any) => {
+        const name = (itm.itemName || "").toLowerCase();
+        const code = String(itm.itemCode || "").toLowerCase();
+        return name.includes(search) || code.includes(search);
+      });
+    }
+    
+    if (!showAllItem) {
+      result = result.filter((itm: any) => {
+        const key = `${itm.itemCode}_${itm.qty}_${itm.uom}`;
+        return !existingPrimaryItemKeys.has(key);
+      });
+    }
+    console.log(result?.filter(itm=>itm.itemCode ==523273))
+    return result;
+  }, [availableItems,itemSearchText,showAllItem,existingPrimaryItemKeys,]);
 
   const normalizeDate = (d: any) => {
     if (!d) return null;
@@ -756,7 +759,7 @@ export default function Page() {
 
   const start = hasRange ? normalizeDate(cfg.date_range[0]) : null;
   const end = hasRange ? normalizeDate(cfg.date_range[1]) : null;
-    console.log(cfg)
+    // console.log(cfg)
     return {
       cloud_kitchen_id: loginDetails?.cloudKitchenId,
       delivery_date: new Date(cfg.date).toISOString().split("T")[0],
@@ -1159,7 +1162,7 @@ export default function Page() {
 
                   return (
                     <div
-                      key={uniqueKey}
+                      // key={uniqueKey}
                       className={`p-2 border-bottom cursor-pointer ${
                         isSelected ? "bg-primary text-white" : "hover-bg-light"
                       }`}
