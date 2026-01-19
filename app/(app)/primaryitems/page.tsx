@@ -707,18 +707,39 @@ export default function Page() {
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null);
   const [stockDataId, setstockDataId] = useState<number | null>(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [showAllItem, setshowAllItem] = useState(false);
+  const existingPrimaryItemKeys = useMemo(() => {
+    const set = new Set<string>();
+
+    primaryItemList.forEach((group: any) => {
+      group.items.forEach((item: any) => {
+        const key = `${item.itemCode}-${item.itemMeasQty}${item.itemMeasDesc}`;
+        set.add(key);
+      });
+    });
+
+    return set;
+  }, [primaryItemList]);
 
   const filteredItemList = useMemo(() => {
     const search = itemSearchText.toLowerCase().trim();
 
-    if (!search) return availableItems || [];
-
-    return availableItems.filter((itm: any) => {
-      const name = (itm.itemName || "").toString().toLowerCase();
+    return (availableItems || []).filter((itm: any) => {
+      const name = (itm.itemName || "").toLowerCase();
       const code = (itm.itemCode || "").toString().toLowerCase();
-      return name.includes(search) || code.includes(search);
+
+      if (search && !name.includes(search) && !code.includes(search)) {
+        return false;
+      }
+
+      const key = `${itm.itemCode}-${itm.qty}${itm.uom}`;
+
+      if (showAllItem) return true;
+
+      return !existingPrimaryItemKeys.has(key);
     });
-  }, [availableItems, itemSearchText]);
+  }, [availableItems, itemSearchText, showAllItem, existingPrimaryItemKeys]);
+
   const normalizeDate = (d: any) => {
     if (!d) return null;
 
@@ -793,8 +814,8 @@ export default function Page() {
           url: `StoreCtl/get-inventory-data/ORDER/${loginDetails.cloudKitchenId}`,
         }).unwrap();
         if (orderRes?.status && Array.isArray(orderRes.object) && orderRes.object.length > 0) {
-          const configChangedByUser = sessionStorage.getItem("CONFIG_CHANGED") === "true";
-          if (!configChangedByUser) {
+          // const configChangedByUser = sessionStorage.getItem("CONFIG_CHANGED") === "true";
+          // if (!configChangedByUser) {
             const serverData = orderRes.object[0]?.dataValue;
 
             if (Array.isArray(serverData)) {
@@ -806,14 +827,14 @@ export default function Page() {
                 })
               );
             }
-          } else {
-            resetPrimaryItem(primaryItemList,(orderRes.object as any)?.[0]?.dataId)
-            handelGetPrimaryItems()
-          }
+          // } else {
+            // resetPrimaryItem(primaryItemList,(orderRes.object as any)?.[0]?.dataId)
+          //   handelGetPrimaryItems()
+          // }
         } else {
           handelGetPrimaryItems()
         }
-
+        // sessionStorage.removeItem("CONFIG_CHANGED");
         if (!availableItems || availableItems.length === 0) {
           const res = await callApi({
             url: `StoreCtl/get-kitchen-primary-items-list/${loginDetails.cloudKitchenId}`,
@@ -907,6 +928,7 @@ export default function Page() {
     }).unwrap();
     if(res?.status){
       setstockDataId(0);
+      handelGetPrimaryItems()
     }
   };
 
@@ -1088,8 +1110,26 @@ export default function Page() {
         }}
         centered
       >
-        <Modal.Header className="border-0">
-          <Modal.Title className="font-18 fw-bold">Add New Item</Modal.Title>
+        <Modal.Header className="border-0 d-flex align-items-center justify-content-between py-2">
+          <Modal.Title className="font-18 fw-bold m-0">
+            Add New Item
+          </Modal.Title>
+
+          <div className="d-flex align-items-center gap-2">
+            <Form.Check
+              type="checkbox"
+              id="show-all-items"
+              className="rb-orange-check m-0"
+              checked={showAllItem}
+              onChange={(e) => setshowAllItem(e.target.checked)}
+            />
+            <label
+              htmlFor="show-all-items"
+              className="font-14 fw-semibold m-0 cursor-pointer"
+            >
+              All
+            </label>
+          </div>
         </Modal.Header>
         <Modal.Body className="border-0">
           <div className="mb-3">
@@ -1101,7 +1141,6 @@ export default function Page() {
               className="mb-2"
               autoFocus
             />
-
             <div
               className="border rounded overflow-auto"
               style={{ maxHeight: "250px" }}

@@ -114,7 +114,9 @@ body {
 .text-green{
   color: $green-color !important;
 }
-
+.text-primary-light{
+  color: #f7a577 !important
+}
 
 // --------------------------------------------------------------Background colors-----------------------------------------------------
 .bg-primary{
@@ -531,6 +533,69 @@ input[type="number"] {
   font-weight: 700;
   border-color: #dee2e6 #dee2e6 #fff;
 }
+
+
+.stock-slider-container {
+  width: 100%;
+}
+
+/* Header */
+.stock-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.stock-header .title {
+  font-weight: 600;
+}
+
+.stock-header .value {
+  color: #333;
+}
+
+/* Rail */
+.stock-slider .rc-slider-rail {
+  background-color: #ededed;
+  height: 6px;
+  border-radius: 4px;
+}
+
+/* Selected range */
+.stock-slider .rc-slider-track {
+  background-color: #F37728;
+  height: 6px;
+  border-radius: 4px;
+}
+
+/* Handle */
+.stock-slider .rc-slider-handle {
+  width: 20px;
+  height: 14px;
+  margin-top: -4px;
+  border-radius: 2px;
+  background-color: $white-color;
+  border: 1px solid #F37728;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Handle "||" icon */
+.stock-slider .rc-slider-handle::before {
+  content: "||";
+  color: #F37728;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: -1px;
+}
+
+/* Remove blue focus ring */
+.stock-slider .rc-slider-handle:focus {
+  box-shadow: none;
+}
+
 
 
 

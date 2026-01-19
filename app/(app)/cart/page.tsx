@@ -38,6 +38,7 @@ type OrderRow = {
   checked: boolean;
   itemDelDate?: string;
 };
+type QtyCompareField = "capacity" | "onhand" | "recommended" | "order";
 
 type GroupUiState = {
   searchText: string;
@@ -47,6 +48,10 @@ type GroupUiState = {
   bulkOperator: "+" | "-";
   bulkValue: number | "";
   qtyCondition?: "<" | ">" | "<=" | ">=" | "=";
+  compareLeft?: QtyCompareField;
+  compareRight?: QtyCompareField;
+  compareOperator?: "<" | ">" | "<=" | ">=" | "=";
+  compareApplied?: boolean;
   qtyValue?: number | "";
   qtyFilterApplied?: boolean;
 };
@@ -196,6 +201,48 @@ export default function Page() {
         }
       });
     }
+    if (
+      ui.compareApplied &&
+      ui.compareLeft &&
+      ui.compareRight &&
+      ui.compareOperator
+    ) {
+      filtered = filtered.filter((i) => {
+        const getValue = (field: any) => {
+          switch (field) {
+            case "capacity":
+              return Number(i.maxQty || 0);
+            case "onhand":
+              return Number(i.availableQty || 0);
+            case "recommended":
+              return Number(i.recommendedQty || 0);
+            case "order":
+              return Number(i.reqQty || 0);
+            default:
+              return 0;
+          }
+        };
+
+        const left = getValue(ui.compareLeft);
+        const right = getValue(ui.compareRight);
+
+        switch (ui.compareOperator) {
+          case "<":
+            return left < right;
+          case ">":
+            return left > right;
+          case "<=":
+            return left <= right;
+          case ">=":
+            return left >= right;
+          case "=":
+            return left === right;
+          default:
+            return true;
+        }
+      });
+    }
+
     return filtered;
   };
 
@@ -263,7 +310,7 @@ export default function Page() {
         cell: (row) => (
           <span
             className={`${
-              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+              row.reqQty !== row.originalReqQty ? "text-secondary" : row.maxQty < row.recommendedQty ? "text-primary-light" : ""
             }`}
           >
             {row.id}
@@ -278,7 +325,7 @@ export default function Page() {
         cell: (row) => (
           <span
             className={`${
-              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+              row.reqQty !== row.originalReqQty ? "text-secondary" : row.maxQty < row.recommendedQty ? "text-primary-light" : ""
             }`}
           >
             {row.itemName}
@@ -293,7 +340,7 @@ export default function Page() {
         cell: (row) => (
           <span
             className={`${
-              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+              row.reqQty !== row.originalReqQty ? "text-secondary" : row.maxQty < row.recommendedQty ? "text-primary-light" : ""
             }`}
           >
             {row.storageType}
@@ -308,7 +355,7 @@ export default function Page() {
         cell: (row) => (
           <span
             className={`${
-              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+              row.reqQty !== row.originalReqQty ? "text-secondary" : row.maxQty < row.recommendedQty ? "text-primary-light" : ""
             }`}
           >
             {row.maxQty}
@@ -323,7 +370,7 @@ export default function Page() {
         cell: (row) => (
           <span
             className={`${
-              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+              row.reqQty !== row.originalReqQty ? "text-secondary" : row.maxQty < row.recommendedQty ? "text-primary-light" : ""
             }`}
           >
             {row.availableQty}
@@ -338,7 +385,7 @@ export default function Page() {
         cell: (row) => (
           <span
             className={`${
-              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+              row.reqQty !== row.originalReqQty ? "text-secondary" : row.maxQty < row.recommendedQty ? "text-primary-light" : ""
             }`}
           >
             {row.recommendedQty}
@@ -383,7 +430,7 @@ export default function Page() {
         cell: (row) => (
           <span
             className={`${
-              row.reqQty !== row.originalReqQty ? "text-secondary" : ""
+              row.reqQty !== row.originalReqQty ? "text-secondary" : row.maxQty < row.recommendedQty ? "text-primary-light" : ""
             }`}
           >
             {`${row.measQty}${row.uom}`}
@@ -495,9 +542,11 @@ export default function Page() {
           const itemsWithIds = rawItems?.map((itm: any, i: number) => {
             const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
             const calculatedReqQty =
-              itm.recommendedQty > calculatedAvailableQty
-                ? Math.max(0, itm.maxQty - calculatedAvailableQty)
-                : Math.max(0, itm.recommendedQty - calculatedAvailableQty);
+              itm.recommendedQty > itm.maxQty
+                ? Math.max(0, itm.recommendedQty - calculatedAvailableQty)
+                : itm.recommendedQty > calculatedAvailableQty
+                  ? Math.max(0, itm.maxQty - calculatedAvailableQty)
+                  : Math.max(0, itm.recommendedQty - calculatedAvailableQty);
             return {
               ...itm,
               id: i + 1,
@@ -539,7 +588,13 @@ export default function Page() {
           ...group,
           items: resequenceItems(group.items),
         }));
-
+        result?.map(grp => {
+          grp.items?.map(item => {
+            if (item.maxQty == 0) {
+              item.maxQty = 15
+            }
+          })
+        })
         setcartItem(result);
       } catch (err) {
         console.error(err);
@@ -1038,6 +1093,96 @@ export default function Page() {
                           </span>
                         )}
                       </div>
+                    </div>
+                    <div>
+
+                    <div className="d-flex align-items-center gap-2 mt-2">
+                      <Form.Select
+                        size="sm"
+                        style={{ width: "80px" }}
+                        value={ui.compareLeft || ""}
+                        onChange={(e) =>
+                          updateUiState(groupIndex, {
+                            compareLeft: e.target.value as any,
+                            compareApplied: false,
+                          })
+                        }
+                      >
+                        <option value="" disabled>Select</option>
+                        <option value="capacity">Capacity</option>
+                        <option value="onhand">On-hand</option>
+                        <option value="recommended">Recmd Qty</option>
+                        <option value="order">Order Qty</option>
+                      </Form.Select>
+
+                      <Form.Select
+                        size="sm"
+                        style={{ width: "54px", textAlign: "center" }}
+                        value={ui.compareOperator || ""}
+                        onChange={(e) =>
+                          updateUiState(groupIndex, {
+                            compareOperator: e.target.value as any,
+                            compareApplied: false,
+                          })
+                        }
+                      >
+                        <option value="" disabled>Op</option>
+                        <option value="<">&lt;</option>
+                        <option value="<=">&lt;=</option>
+                        <option value=">">&gt;</option>
+                        <option value=">=">&gt;=</option>
+                        <option value="=">=</option>
+                      </Form.Select>
+
+                      <Form.Select
+                        size="sm"
+                        style={{ width: "80px" }}
+                        value={ui.compareRight || ""}
+                        onChange={(e) =>
+                          updateUiState(groupIndex, {
+                            compareRight: e.target.value as any,
+                            compareApplied: false,
+                          })
+                        }
+                      >
+                        <option value="" disabled>Select</option>
+                        <option value="capacity">Capacity</option>
+                        <option value="onhand">On-hand</option>
+                        <option value="recommended">Recmd Qty</option>
+                        <option value="order">Order Qty</option>
+                      </Form.Select>
+
+                      {!ui.compareApplied ? (
+                        <Button
+                          size="sm"
+                          className="btn-filled p-1 font-12"
+                          disabled={
+                            !ui.compareLeft ||
+                            !ui.compareRight ||
+                            !ui.compareOperator
+                          }
+                          onClick={() =>
+                            updateUiState(groupIndex, { compareApplied: true })
+                          }
+                        >
+                          Apply
+                        </Button>
+                      ) : (
+                        <span
+                          className="text-primary fw-bold cursor-pointer text-decoration-underline"
+                          onClick={() =>
+                            updateUiState(groupIndex, {
+                              compareApplied: false,
+                              compareLeft: undefined,
+                              compareRight: undefined,
+                              compareOperator: undefined,
+                            })
+                          }
+                        >
+                          Clear
+                        </span>
+                      )}
+                    </div>
                     </div>
                   </div>
                 </div>
