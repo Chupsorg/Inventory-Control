@@ -191,6 +191,10 @@ body {
   background-image: none;
 }
 
+.form-check-input:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}
 
 // --------------------------------------------------------------custom select-----------------------------------------------------
 .rb-custom-select {
@@ -301,19 +305,16 @@ body {
   outline: none !important;
 }
 
-/* Base loading state */
 .btn-loading {
   position: relative;
-  pointer-events: none; /* disable clicks */
+  pointer-events: none;
   opacity: 0.85;
 }
 
-/* Hide text but keep space */
 .btn-loading .btn-text {
   visibility: hidden;
 }
 
-/* Spinner centered */
 .btn-loading::after {
   content: "";
   position: absolute;
@@ -327,7 +328,6 @@ body {
   animation: btn-spin 0.8s linear infinite;
 }
 
-/* Outline button spinner color */
 .btn-outline.btn-loading::after {
   border-color: rgba(0, 0, 0, 0.3);
   border-top-color: #000;
@@ -339,6 +339,36 @@ body {
     transform: rotate(360deg);
   }
 }
+.btn-filled,
+.btn-outline {
+  // height: 100%;
+  padding: 0 16px;   /* horizontal only */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea:focus,
+input:focus {
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: #ced4da;
+}
+
+.btn:focus,
+.btn:focus-visible,
+.btn:active,
+.btn.active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.btn:active:focus {
+  box-shadow: none !important;
+}
+
 
 
 // --------------------------------------------------------------Login page-----------------------------------------------------

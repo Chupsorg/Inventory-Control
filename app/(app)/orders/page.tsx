@@ -461,8 +461,8 @@ export default function Page() {
         <Col xs={4}>
           <h4 className="font-24 fw-bold">Orders</h4>
         </Col>
-        <Col xs={8}>
-          <div className="float-end">
+        <Col xs={8} className="d-flex align-items-stretch justify-content-end">
+          <div className="d-flex float-end">
             <Button
               className="btn-outline me-2 fw-bold"
               onClick={() => router.push("/history")}

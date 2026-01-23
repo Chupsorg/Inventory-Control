@@ -68,12 +68,15 @@ const primaryItemsSlice = createSlice({
 
     updateItemQty(
       state,
-      action: PayloadAction<{ groupIndex: number; itemId: number; qty: number | "" }>
+      action: PayloadAction<{ groupIndex: number; itemId: number; qty: number | "" ; direct: boolean}>
     ) {
       const group = state.list[action.payload.groupIndex];
       const item = group.items.find((i) => i.id === action.payload.itemId);
       if (item) {
         item.rcomQty = action.payload.qty;
+        if(action.payload.direct){
+          item.touched = item.rcomQty !== item.itemQty;
+        }
       }
     },
 
@@ -102,6 +105,7 @@ const primaryItemsSlice = createSlice({
           const newQty = operator === "+" ? base + delta : base - delta;
 
           item.rcomQty = Math.max(0, Math.round(newQty));
+          item.touched = item.rcomQty !== item.itemQty;
         });
       });
     },
@@ -130,6 +134,7 @@ const primaryItemsSlice = createSlice({
         operator: "+" | "-";
         value: number;
         mode: "PERCENT" | "VALUE";
+        direct: boolean
       }>
     ) => {
       const { groupIndex, operator, value, mode } = action.payload;
@@ -156,6 +161,9 @@ const primaryItemsSlice = createSlice({
             : currentQty - delta;
 
         item.rcomQty = Math.max(0, Math.round(newQty));
+        if(action.payload.direct){
+          item.touched = item.rcomQty !== item.itemQty;
+        }
       });
     },
     addItemToGroup: (state, action) => {
@@ -168,6 +176,27 @@ const primaryItemsSlice = createSlice({
         });
       }
     },
+    markSelectedAsTouched: (
+      state,
+      action: PayloadAction<{ groupIndex: number,modalClose:boolean }>
+    ) => {
+      const { groupIndex } = action.payload;
+      if(action.payload.modalClose){
+        state.list[groupIndex].items.forEach(item => {
+          if (item.rcomQty !== item.itemQty) {
+            item.touched = true;
+          }
+        });
+      }else{
+        state.list[groupIndex].items.forEach(item => {
+          if (item.checked && !item.touched) {
+            item.touched = true;
+            item.checked = false;
+          }
+        });
+      }
+    },
+
   },
 });
 
@@ -182,6 +211,7 @@ export const {
   selectSpecificItems,
   applyMathToSelected,
   addItemToGroup,
+  markSelectedAsTouched
 } = primaryItemsSlice.actions;
 
 export default primaryItemsSlice.reducer;

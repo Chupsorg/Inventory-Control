@@ -503,7 +503,7 @@ export default function Page() {
         </Col> */}
         <Col>
           <Button
-            className="btn-filled float-end"
+            className="btn-filled float-end h-100 py-1 px-3"
             disabled={uploadloader}
             onClick={() => {
               handleSaveConfig();
@@ -807,7 +807,7 @@ export default function Page() {
         </Col>
       </Row>
       <Button
-        className="btn-filled float-end mt-3 mb-5"
+        className="btn-filled float-end mt-3 mb-5 py-2 px-3"
         disabled={uploadloader}
         onClick={() => {
           handleSaveConfig();

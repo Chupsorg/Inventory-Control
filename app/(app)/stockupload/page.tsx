@@ -331,8 +331,8 @@ export default function stockupload() {
         </Modal.Header>
 
         <Modal.Body>
-          <div className="d-flex align-items-center justify-content-between">
-            <p className="font-24 fw-bold">
+          <div className="d-flex align-items-stretch justify-content-between">
+            <p className="font-24 fw-bold m-0">
               {stockJson?.length} Assembly Items
             </p>
             <div className='d-flex'>
@@ -364,9 +364,9 @@ export default function stockupload() {
           </div>
         </Modal.Body>
         <Modal.Footer className="border-0">
-          <div>
+          <div className='d-flex'>
             <Button
-              className="btn-outline text-primary me-2 text-capitalize"
+              className="btn-outline text-primary me-2 text-capitalize h-100 py-1"
               onClick={() => {
                 setassemblyModal(false);
               }}
@@ -374,7 +374,7 @@ export default function stockupload() {
               close
             </Button>
             <Button
-              className="btn-filled text-capitalize"
+              className="btn-filled text-capitalize h-100 py-1"
               onClick={() => {
                 handleUpdateAssembly();
               }}

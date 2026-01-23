@@ -540,19 +540,30 @@ export default function Page() {
         let result = responses.map((res, index) => {
           const rawItems = (res.object as any[]) || [];
           const itemsWithIds = rawItems?.map((itm: any, i: number) => {
-            const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
-            const calculatedReqQty =
-              itm.recommendedQty > itm.maxQty
-                ? Math.max(0, itm.recommendedQty - calculatedAvailableQty)
-                : itm.recommendedQty > calculatedAvailableQty
-                  ? Math.max(0, itm.maxQty - calculatedAvailableQty)
-                  : Math.max(0, itm.recommendedQty - calculatedAvailableQty);
+            const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
+            let calculatedReqQty: any = 0
+            if (itm.storageType === "FRIDGE") {
+              calculatedReqQty = itm.recommendedQty - itm.availableQty
+            } else {
+              const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
+              calculatedReqQty =
+                itm.recommendedQty < calculatedAvailableQty ?
+                  0
+                  :
+                  itm.recommendedQty > maxQty ?
+                    Math.max(0, maxQty - calculatedAvailableQty)
+                    :
+                    itm.recommendedQty > calculatedAvailableQty
+                      ? Math.max(0, maxQty - calculatedAvailableQty) :
+                      0
+            }
             return {
               ...itm,
               id: i + 1,
               checked: false,
               reqQty: calculatedReqQty,
               originalReqQty: calculatedReqQty,
+              maxQty:maxQty
             };
           });
           return { config: primaryItemList[index].config, items: itemsWithIds };
@@ -584,17 +595,44 @@ export default function Page() {
           );
         }
 
-        result = result.map((group) => ({
+        result = result.map((group:any) => ({
           ...group,
           items: resequenceItems(group.items),
         }));
-        result?.map(grp => {
-          grp.items?.map(item => {
-            if (item.maxQty == 0) {
-              item.maxQty = 15
+        result = result.map((res, index) => {
+          const rawItems = (res.items as any[]) || [];
+          const itemsWithIds = rawItems?.map((itm: any, i: number) => {
+            const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
+            let calculatedReqQty: any = 0
+            if (itm.storageType === "FRIDGE") {
+              calculatedReqQty = itm.recommendedQty < itm.availableQty ?
+                0
+                :
+                itm.recommendedQty - itm.availableQty
+            } else {
+              const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
+              calculatedReqQty =
+                itm.recommendedQty < calculatedAvailableQty ?
+                  0
+                  :
+                  itm.recommendedQty > maxQty ?
+                    Math.max(0, maxQty - calculatedAvailableQty)
+                    :
+                    itm.recommendedQty > calculatedAvailableQty
+                      ? Math.max(0, maxQty - calculatedAvailableQty) :
+                      0
             }
-          })
-        })
+            return {
+              ...itm,
+              id: i + 1,
+              checked: false,
+              reqQty: calculatedReqQty,
+              originalReqQty: calculatedReqQty,
+              maxQty:maxQty
+            };
+          });
+          return { config: primaryItemList[index].config, items: itemsWithIds };
+        });
         setcartItem(result);
       } catch (err) {
         console.error(err);
