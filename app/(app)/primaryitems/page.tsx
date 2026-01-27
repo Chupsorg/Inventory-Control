@@ -1466,9 +1466,9 @@ export default function Page() {
   );
 
   const handleAddItemExcelDownload = () => {
-    if (!modalItems.length) return;
+    if (!modalRows.length) return;
 
-    const data = modalItems.map((item, idx) => ({
+    const data = modalRows.map((item, idx) => ({
       id: idx + 1,
       momName: item.momName,
       itemCode: item.itemCode,
