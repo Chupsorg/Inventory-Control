@@ -542,7 +542,7 @@ export default function Page() {
           const itemsWithIds = rawItems?.map((itm: any, i: number) => {
             const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
             let calculatedReqQty: any = 0
-            if (itm.storageType === "FRIDGE") {
+            if (itm.storageType === "FRIDGE" || itm.storageType === "OTHER") {
               calculatedReqQty = itm.recommendedQty - itm.availableQty
             } else {
               const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
@@ -604,7 +604,7 @@ export default function Page() {
           const itemsWithIds = rawItems?.map((itm: any, i: number) => {
             const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
             let calculatedReqQty: any = 0
-            if (itm.storageType === "FRIDGE") {
+            if (itm.storageType === "FRIDGE" || itm.storageType === "OTHER") {
               calculatedReqQty = itm.recommendedQty < itm.availableQty ?
                 0
                 :
