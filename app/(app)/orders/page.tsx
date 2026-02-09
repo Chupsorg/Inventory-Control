@@ -27,6 +27,7 @@ interface OrderItem {
   availableQuantity?: number;
   preparedByList?: { name: string }[];
   [key: string]: any;
+  lotNo:string
 }
 
 interface OrderDetails {
@@ -46,6 +47,7 @@ type ExcelRow = {
   measDesc: string;
   receivedQty: number;
   receivedRemark: string;
+  lotNo: string;
 };
 
 export default function Page() {
@@ -243,6 +245,7 @@ export default function Page() {
           itemName: item.itemName,
           preparedBy: item.preparedByList?.[0]?.name ?? "-",
           storageType: item.storageType || "N/A",
+          lotNo: item.lotNo || "-",
           availableQuantity: item.availableQuantity ?? 0,
           qty: item.qty,
           measDesc: `${item.measQty} x ${item.measDesc}`,
@@ -261,6 +264,7 @@ export default function Page() {
               { header: "Item Name", key: "itemName" },
               { header: "Prepared By", key: "preparedBy" },
               { header: "Freezer/Fridge", key: "storageType" },
+              { header: "Lot No", key: "lotNo" },
               { header: "On-Hand", key: "availableQuantity" },
               { header: "Ordered Qty", key: "qty" },
               { header: "UOM", key: `measDesc` },
@@ -269,7 +273,7 @@ export default function Page() {
             ],
           },
         ],
-        `Order_Report(${orderDetails?.orderId})`
+        `Order_Report(${orderDetails?.orderId} - ${getDayName(new Date(orderDetails?.deliveryDate))})`
       );
     }
   }, [orderDetails]);
@@ -423,6 +427,12 @@ export default function Page() {
       {
         name: "Freezer/Fridge",
         selector: (row) => row.storageType,
+        sortable: true,
+        center: true,
+      },
+      {
+        name: "Lot No",
+        selector: (row) => row.lotNo,
         sortable: true,
         center: true,
       },
