@@ -69,6 +69,9 @@ export default function Page() {
   const [isUploadsuccess, setisUploadsuccess] = useState(false);
   const [stockJson, setstockJson] = useState<AssemblyRow[]>([]);
   const [assemblyModal, setassemblyModal] = useState<boolean>(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const DAY_CODE_MAP: DayCode[] = [
     "SUN",
     "MON",
@@ -90,6 +93,42 @@ export default function Page() {
       )
     );
   };
+
+  useEffect(() => {
+    setAppliedSearch(searchInput);
+  }, [searchInput]);
+
+  const suggestions = useMemo(() => {
+    if (!searchInput.trim()) return [];
+
+    const lower = searchInput.toLowerCase();
+    const set = new Set<string>();
+
+    stockJson?.forEach((item) => {
+      if (item.item_name?.toLowerCase().includes(lower)) {
+        set.add(item.item_name);
+      }
+    });
+
+    return [...set].slice(0, 8);
+  }, [searchInput, stockJson]);
+
+
+  const filteredItems = useMemo(() => {
+    let result = stockJson;
+
+    if (appliedSearch) {
+      const lower = appliedSearch.toLowerCase();
+
+      result = result?.filter((item: any) => {
+        return (
+          item.item_name?.toLowerCase().includes(lower)
+        );
+      });
+    }
+
+    return result;
+  }, [stockJson, appliedSearch]);
 
   const assemblyColumns: TableColumn<AssemblyRow>[] = useMemo(
     () => [
@@ -832,9 +871,9 @@ export default function Page() {
             <p className="font-24 fw-bold">
               {stockJson?.length} Assembly Items
             </p>
-            <div>
+            <div className="d-flex">
               <Button
-                className="btn-outline text-primary me-2 text-capitalize"
+                className="btn-outline text-primary me-2 text-capitalize py-2"
                 onClick={() => {
                   setassemblyModal(false);
                 }}
@@ -852,18 +891,54 @@ export default function Page() {
             </div>
           </div>
           <div className="mt-4">
+            <div className="position-relative flex-grow-1">
+              <Form.Control
+                type="search"
+                placeholder="Search items, platform, event, food type..."
+                className="border-bottom-0 rounded-bottom-0 ps-2"
+                value={searchInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchInput(value);
+                  setShowSuggestions(true);
+
+                  if (!value) {
+                    setAppliedSearch("");
+                  }
+                }}
+                onFocus={() => setShowSuggestions(true)}
+              />
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="position-absolute bg-white border rounded w-100 mt-1 z-3">
+                  {suggestions.map((sug, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3 py-2 cursor-pointer hover-bg"
+                      onClick={() => {
+                        setAppliedSearch(sug);
+                        setSearchInput(sug);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      {sug}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <Datatable<AssemblyRow>
               columns={assemblyColumns}
-              rowData={stockJson}
+              rowData={filteredItems || []}
               progressPending={isLoading}
               pagination={true}
             />
           </div>
         </Modal.Body>
         <Modal.Footer className="border-0">
-          <div>
+          <div className="d-flex">
             <Button
-              className="btn-outline text-primary me-2 text-capitalize"
+              className="btn-outline text-primary me-2 text-capitalize py-2"
               onClick={() => {
                 setassemblyModal(false);
               }}

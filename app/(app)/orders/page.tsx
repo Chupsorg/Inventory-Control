@@ -53,6 +53,9 @@ export default function Page() {
   const [callApi, { isLoading }] = useCallApiMutation();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const dispatch = useDispatch();
 
   const activeOrders = useSelector(
@@ -64,6 +67,42 @@ export default function Page() {
   const rehydrated = useSelector(
     (state: RootState) => state._persist?.rehydrated
   );
+
+  useEffect(() => {
+    setAppliedSearch(searchInput);
+  }, [searchInput]); 
+
+  const suggestions = useMemo(() => {
+    if (!searchInput.trim()) return [];
+
+    const lower = searchInput.toLowerCase();
+    const set = new Set<string>();
+
+    orderDetails?.orderedItems?.forEach((item) => {
+      if (item.itemName?.toLowerCase().includes(lower)) {
+        set.add(item.itemName);
+      }
+    });
+
+    return [...set].slice(0, 8);
+  }, [searchInput, orderDetails?.orderedItems]);
+
+
+  const filteredItems = useMemo(() => {
+    let result = orderDetails?.orderedItems;
+
+    if (appliedSearch) {
+      const lower = appliedSearch.toLowerCase();
+
+      result = result?.filter((item: any) => {
+        return (
+          item.itemName?.toLowerCase().includes(lower)
+        );
+      });
+    }
+
+    return result;
+  }, [orderDetails?.orderedItems, appliedSearch]);
 
   const handleItemChange = useCallback(
     (id: number, field: string, value: string | number) => {
@@ -423,9 +462,9 @@ export default function Page() {
   }, [rehydrated, loginDetails, refreshActiveOrders]);
 
   const renderActionButtons = () => (
-    <>
+    <div className="d-flex">
       <Button
-        className="btn-outline text-capitalize me-2 mb-1 mb-md-0"
+        className="btn-outline text-capitalize me-2 mb-1 mb-md-0 py-2"
         onClick={handleDownloadExcel}
       >
         Download as excel
@@ -452,7 +491,7 @@ export default function Page() {
       >
         {orderDetails?.orderStatus === "ENTERED" ? `Send To Pantry` : `Save`}
       </Button>
-    </>
+    </div>
   );
 
   return (
@@ -493,21 +532,57 @@ export default function Page() {
         backdrop="static"
       >
         <Modal.Header className="p-2">
-          <Modal.Title className="font-14">Order Details</Modal.Title>
+          <Modal.Title className="font-14 m-0">Order Details</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <div className="d-flex align-items-center justify-content-between">
-            <p className="font-24 fw-bold">Order ID: {orderDetails?.orderId}</p>
-            <div className="d-flex flex-wrap">{renderActionButtons()}</div>
+            <p className="font-24 fw-bold m-0">Order ID: {orderDetails?.orderId}</p>
+            <div className="">{renderActionButtons()}</div>
           </div>
           <div className="mt-4">
+            <div className="position-relative flex-grow-1">
+              <Form.Control
+                type="search"
+                placeholder="Search items, platform, event, food type..."
+                className="border-bottom-0 rounded-bottom-0 ps-2"
+                value={searchInput}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchInput(value);
+                  setShowSuggestions(true);
+
+                  if (!value) {
+                    setAppliedSearch("");
+                  }
+                }}
+                onFocus={() => setShowSuggestions(true)}
+              />
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="position-absolute bg-white border rounded w-100 mt-1 z-3">
+                  {suggestions.map((sug, idx) => (
+                    <div
+                      key={idx}
+                      className="px-3 py-2 cursor-pointer hover-bg"
+                      onClick={() => {
+                        setAppliedSearch(sug);
+                        setSearchInput(sug);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      {sug}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <Datatable<OrderItem>
               columns={
                 orderDetails?.orderStatus === "ENTERED"
                   ? entryOrderDetailColumns
                   : orderDetailColumns
               }
-              rowData={orderDetails?.orderedItems || []}
+              rowData={filteredItems || []}
               progressPending={isLoading}
               pagination={true}
             />

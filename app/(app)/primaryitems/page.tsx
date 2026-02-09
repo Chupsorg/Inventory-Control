@@ -1191,7 +1191,7 @@ export default function Page() {
               const value = Number(e.target.value);
               setModalItems(prev =>
                 prev.map(itm =>
-                  itm.id === row.id ? { ...itm, rcomQty: value } : itm
+                  itm.id === row.id ? { ...itm, rcomQty: value, checked:true } : itm
                 )
               );
 
