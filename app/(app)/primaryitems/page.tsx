@@ -929,6 +929,21 @@ export default function Page() {
   const normalizeQty = (v: any) => Number(v);
   const normalizeUom = (v: any) => String(v).trim().toLowerCase();
   
+  const existingPrimaryItemKeysWithMaster = useMemo(() => {
+    if (activeGroupIndex === null) return new Set<string>();
+
+    const set = new Set<string>();
+    const group = primaryItemList[activeGroupIndex];
+
+    group?.items.forEach((item: any) => {
+      set.add(
+        `${item.masterItemCode}_${normalizeQty(item.itemMeasQty)}_${normalizeUom(item.itemMeasDesc)}`
+      );
+    });
+
+    return set;
+  }, [primaryItemList, activeGroupIndex]);
+
   const existingPrimaryItemKeys = useMemo(() => {
     if (activeGroupIndex === null) return new Set<string>();
 
@@ -950,6 +965,10 @@ export default function Page() {
 
     const freshItems: OrderRow[] = availableItems
       .filter((itm: any) => {
+        const key = `${itm.masterItemCode}_${normalizeQty(itm.qty)}_${normalizeUom(itm.uom)}`;
+        return !existingPrimaryItemKeysWithMaster.has(key);
+      })
+      .filter((itm: any) => {
         const key = `${itm.itemCode}_${normalizeQty(itm.qty)}_${normalizeUom(itm.uom)}`;
         return !existingPrimaryItemKeys.has(key);
       })
@@ -968,7 +987,7 @@ export default function Page() {
         availableStock: itm.availableStock
       }));
     setModalItems(freshItems);
-  }, [newItemModal, activeGroupIndex, availableItems, existingPrimaryItemKeys]);
+  }, [newItemModal, activeGroupIndex, availableItems, existingPrimaryItemKeysWithMaster, existingPrimaryItemKeys]);
 
   const filteredModalItems = useMemo(() => {
     let result = [...modalItems];
