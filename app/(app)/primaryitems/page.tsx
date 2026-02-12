@@ -47,6 +47,7 @@ type OrderRow = {
   UOM: string;
   itemMeasQty: string;
   itemMeasDesc: string;
+  itemMeasCode: number;
   groupIndex: number;
   checked: boolean;
   qty: number;
@@ -464,6 +465,7 @@ const PrimaryItemGroup = ({
     UOM: item.UOM,
     itemMeasQty: item.itemMeasQty,
     itemMeasDesc: item.itemMeasDesc,
+    itemMeasCode:item.itemMeasCode,
     groupIndex,
     checked: item.checked ?? false,
   }));
@@ -943,6 +945,7 @@ export default function Page() {
   }, [primaryItemList, activeGroupIndex]);
 
   useEffect(() => {
+
     if (!newItemModal || activeGroupIndex === null) return;
 
     const freshItems: OrderRow[] = availableItems
@@ -959,6 +962,7 @@ export default function Page() {
         rcomQty: 0,
         qty: itm.qty,
         uom: itm.uom,
+        itemMeasCode:itm.measCode,
         vegType: itm.vegType,
         checked: false,
         availableStock: itm.availableStock
@@ -1067,6 +1071,7 @@ export default function Page() {
               itemQty: 0,
               rcomQty: item.rcomQty,
               itemMeasQty: item.qty,
+              itemMeasCode:item.itemMeasCode,
               itemMeasDesc: item.uom,
               vegType: item.vegType,
               checked: false,
