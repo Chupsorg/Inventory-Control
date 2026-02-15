@@ -20,6 +20,7 @@ interface AssemblyItem {
   id?: number;
   itemCode: number;
   itemName: string;
+  measCode : number;
   uom: string;
   measQty: number;
   qty?: number;
@@ -36,6 +37,8 @@ interface AssemblyItemExcelRow {
   preparedBy: string;
   storageType: string;
   maxQty: number;
+  measCode: number;
+  measQty : number;
 }
 
 export default function Page() {
@@ -311,6 +314,8 @@ export default function Page() {
       id: item.id,
       itemCode: item.itemCode,
       itemName: item.itemName,
+      measCode: item.measCode,
+      measQty: item.measQty,
       uom: `${item.measQty} ${item.uom}`,
       preparedBy: item.preparedByList?.[0]?.name || "-",
       storageType: item.storageType || "N/A",
@@ -325,6 +330,8 @@ export default function Page() {
             { header: "#", key: "id" },
             { header: "Item Name", key: "itemName" },
             { header: "Item Code", key: "itemCode" },
+            { header: "uom_code", key: "measCode" },
+            { header: "uom_qty", key: "measQty" },
             { header: "UOM", key: "uom" },
             { header: "Prepared By", key: "preparedBy" },
             { header: "storageType", key: "storageType" },
