@@ -743,6 +743,7 @@ export default function Page() {
   const [untouchOperator, setuntouchOperator] = useState<"+" | "-">("+");
   const [untouchBulkQty, setuntouchBulkQty] = useState<number | "">("");
   const [untouchBulkMode, setuntouchBulkMode] = useState<"VALUE" | "PERCENT">("VALUE");
+  const [resetConfirmModal, setresetConfirmModal] = useState(false);
 
   const normalizeDate = (d: any) => {
     if (!d) return null;
@@ -1582,7 +1583,7 @@ export default function Page() {
           {stockDataId ? <Button
             className="btn-outline me-2"
             onClick={() => {
-              resetPrimaryItem(primaryItemList, stockDataId)
+              setresetConfirmModal(true)
             }}
           >
             Reset
@@ -2105,6 +2106,45 @@ export default function Page() {
             </Col>
           </div>
         </Modal.Body>
+      </Modal>
+      <Modal
+        show={resetConfirmModal}
+        onHide={() => {
+          setresetConfirmModal(false);
+        }}
+        centered
+      >
+        <Modal.Header className="border-0">
+          <Modal.Title className="font-18 fw-bold">Alert!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="border-0">
+          <Row>
+            <div className="d-flex flex-column mb-3 align-items-center justify-content-center">
+              <h4 className="font-18 fw-bold">Do you want to reset primary items List?</h4>
+              <p className="font-14 "><span className="text-primary">Note:</span> changes will be lost.</p>
+            </div>
+          </Row>
+        </Modal.Body>
+        <Modal.Footer className="border-0 align-items-stretch">
+          <Button
+            className="btn-outline px-4"
+            onClick={() => {
+              setresetConfirmModal(false)
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="btn-filled py-1"
+            onClick={() => {
+              if(stockDataId){
+                resetPrimaryItem(primaryItemList, stockDataId)
+              }
+            }}
+          >
+            Yes
+          </Button>
+        </Modal.Footer>
       </Modal>
     </Container>
   );
