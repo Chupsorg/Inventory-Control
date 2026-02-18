@@ -543,19 +543,18 @@ export default function Page() {
             const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
             let calculatedReqQty: any = 0
             if (itm.storageType === "FRIDGE" || itm.storageType === "OTHER") {
-              calculatedReqQty = itm.recommendedQty - itm.availableQty
+              calculatedReqQty = Math.max(0, itm.recommendedQty - itm.availableQty)
             } else {
               const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
-              calculatedReqQty =
-                itm.recommendedQty < calculatedAvailableQty ?
-                  0
-                  :
-                  itm.recommendedQty > maxQty ?
-                    Math.max(0, maxQty - calculatedAvailableQty)
-                    :
-                    itm.recommendedQty > calculatedAvailableQty
-                      ? Math.max(0, maxQty - calculatedAvailableQty) :
-                      0
+              if(itm.recommendedQty < calculatedAvailableQty){
+                 calculatedReqQty = 0
+              }else{
+                if(maxQty > itm.recommendedQty){
+                  calculatedReqQty = Math.max(0, maxQty - calculatedAvailableQty)
+                }else{
+                  calculatedReqQty = Math.max(0, itm.recommendedQty - calculatedAvailableQty)
+                }
+              }
             }
             return {
               ...itm,
@@ -605,22 +604,18 @@ export default function Page() {
             const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
             let calculatedReqQty: any = 0
             if (itm.storageType === "FRIDGE" || itm.storageType === "OTHER") {
-              calculatedReqQty = itm.recommendedQty < itm.availableQty ?
-                0
-                :
-                itm.recommendedQty - itm.availableQty
+              calculatedReqQty = Math.max(0, itm.recommendedQty - itm.availableQty)
             } else {
               const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
-              calculatedReqQty =
-                itm.recommendedQty < calculatedAvailableQty ?
-                  0
-                  :
-                  itm.recommendedQty > maxQty ?
-                    Math.max(0, maxQty - calculatedAvailableQty)
-                    :
-                    itm.recommendedQty > calculatedAvailableQty
-                      ? Math.max(0, maxQty - calculatedAvailableQty) :
-                      0
+              if(itm.recommendedQty < calculatedAvailableQty){
+                 calculatedReqQty = 0
+              }else{
+                if(maxQty > itm.recommendedQty){
+                  calculatedReqQty = Math.max(0, maxQty - calculatedAvailableQty)
+                }else{
+                  calculatedReqQty = Math.max(0, itm.recommendedQty - calculatedAvailableQty)
+                }
+              }
             }
             return {
               ...itm,
