@@ -543,7 +543,7 @@ export default function Page() {
             const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
             let calculatedReqQty: any = 0
             if (itm.storageType === "FRIDGE" || itm.storageType === "OTHER") {
-              calculatedReqQty = Math.max(0, itm.recommendedQty - itm.availableQty)
+              calculatedReqQty = Math.max(0, itm.recommendedQty - (index == 0 ? itm.availableQty : 0))
             } else {
               const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
               if(itm.recommendedQty < calculatedAvailableQty){
@@ -604,7 +604,7 @@ export default function Page() {
             const maxQty = itm.maxQty == 0 ? 15 : itm.maxQty
             let calculatedReqQty: any = 0
             if (itm.storageType === "FRIDGE" || itm.storageType === "OTHER") {
-              calculatedReqQty = Math.max(0, itm.recommendedQty - itm.availableQty)
+              calculatedReqQty = Math.max(0, itm.recommendedQty - (index == 0 ? itm.availableQty : 0))
             } else {
               const calculatedAvailableQty = index == 0 ? itm.availableQty : 0;
               if(itm.recommendedQty < calculatedAvailableQty){
