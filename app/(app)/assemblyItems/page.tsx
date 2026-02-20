@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Row, Col, Container, Form, Button } from "react-bootstrap";
+import { Row, Col, Container, Form, Button, Tabs, Tab, } from "react-bootstrap";
 import Datatable from "@/app/components/Datatable";
 import { TableColumn } from "react-data-table-component";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,7 @@ interface AssemblyItem {
   itemType: string;
   maxQty: number;
   storageType: "FRIDGE" | "FREEZER" | "OTHER";
+  lotNo: string;
 }
 interface AssemblyItemExcelRow {
   id?: number;
@@ -39,9 +40,11 @@ interface AssemblyItemExcelRow {
   maxQty: number;
   measCode: number;
   measQty : number;
+  lotNo: string;
 }
 
 export default function Page() {
+    const [key, setKey] = useState<string | number>(0);
   const router = useRouter();
   const [callApi, { isLoading }] = useCallApiMutation();
 
@@ -87,13 +90,14 @@ export default function Page() {
         const isStorageDifferent =
           newItem.storageType !== originalItem.storageType;
         const isQtyDifferent = newItem.maxQty !== originalItem.maxQty;
+        const islotNoDifferent = newItem.lotNo !== originalItem.lotNo;
 
         const oldChefId = originalItem.preparedByList?.[0]?.id;
         const newChefId = newItem.preparedByList?.[0]?.id;
         const isChefDifferent = oldChefId !== newChefId;
 
         const isDifferent =
-          isStorageDifferent || isQtyDifferent || isChefDifferent;
+          isStorageDifferent || isQtyDifferent || isChefDifferent || islotNoDifferent;
         const filtered = prevModified.filter((item) => item.id !== newItem.id);
 
         return isDifferent ? [...filtered, newItem] : filtered;
@@ -171,6 +175,26 @@ export default function Page() {
     [updateModifiedList]
   );
 
+  const handleLotNoChange = useCallback(
+    (id: number | undefined, newValue: string) => {
+      if (!id) return;
+
+      setAssemblyItemsList((prevItems) => {
+        if (!prevItems) return null;
+
+        return prevItems.map((item) => {
+          if (item.id === id) {
+            const updatedItem = { ...item, lotNo: newValue};
+            updateModifiedList(updatedItem);
+            return updatedItem;
+          }
+          return item;
+        });
+      });
+    },
+    [updateModifiedList]
+  );
+
   const columns: TableColumn<AssemblyItem>[] = useMemo(
     () => [
       {
@@ -194,9 +218,11 @@ export default function Page() {
         name: "UOM",
         selector: (row) => `${row.measQty} ${row.uom}`,
         sortable: true,
+        omit: key == 1
       },
       {
         name: "Prepared By",
+        omit: key == 0,
         selector: (row) => row.preparedByList?.[0]?.preparedBy || "-",
         sortable: true,
         cell: (row) => (
@@ -216,6 +242,7 @@ export default function Page() {
       },
       {
         name: "Storage Type",
+        omit: key == 0,
         selector: (row) => row.storageType || "N/A",
         sortable: true,
         cell: (row) => (
@@ -232,11 +259,26 @@ export default function Page() {
         ),
       },
       {
+        name: "Lot No",
+        omit: key == 1,
+        selector: (row) => row.lotNo,
+        sortable: true,
+        center: true,
+        cell: (row) => (
+          <Form.Control
+            type="text"
+            className={`text-center`}
+            value={row.lotNo ?? ""}
+            onChange={(e) => handleLotNoChange(row.id, e.target.value)}
+          />
+        ),
+      },
+      {
         name: "Max Quantity",
+        omit: key == 1,
         selector: (row) => row.maxQty,
         sortable: true,
         center: true,
-        width: "160px",
         cell: (row) => (
           <Form.Control
             type="number"
@@ -247,7 +289,7 @@ export default function Page() {
         ),
       },
     ],
-    [handleStorageChange, handleMaxQtyChange, handleSelectChef, chefList]
+    [handleStorageChange, handleLotNoChange, handleMaxQtyChange, handleSelectChef, chefList]
   );
 
   useEffect(() => {
@@ -259,9 +301,8 @@ export default function Page() {
         if (resChefs.status) setChefList(resChefs.object as Chef[]);
 
         let resItems = await callApi({
-          url: `StoreCtl/get-kitchen-assembly-items-list/${loginDetails?.cloudKitchenId}`,
+          url: `StoreCtl/get-kitchen-assembly-items-list/${loginDetails?.cloudKitchenId}/${key == 0? "MEASUREMENT" : "UNIQUE"}`,
         }).unwrap();
-
         if (resItems.status) {
           const updatedData: AssemblyItem[] =
             (resItems.object as AssemblyItem[])?.map(
@@ -280,7 +321,7 @@ export default function Page() {
     };
 
     if (rehydrated && loginDetails) handleGetAssemblyItems();
-  }, [rehydrated, loginDetails, callApi]);
+  }, [rehydrated, loginDetails, callApi, key]);
 
   const handleUpdateAssemblyItems = async () => {
     try {
@@ -293,7 +334,7 @@ export default function Page() {
       }));
 
       let res = await callApi({
-        url: `StoreCtl/update-assembly-item-basic-details`,
+        url: `StoreCtl/update-assembly-item-basic-details/${key == 0? "BASIC" : "STORAGE"}`,
         body: payload as any,
       }).unwrap();
 
@@ -320,6 +361,7 @@ export default function Page() {
       preparedBy: item.preparedByList?.[0]?.name || "-",
       storageType: item.storageType || "N/A",
       maxQty: item.maxQty,
+      lotNo: item.lotNo
     }));
     exportToExcel(
       [
@@ -336,6 +378,7 @@ export default function Page() {
             { header: "Prepared By", key: "preparedBy" },
             { header: "storageType", key: "storageType" },
             { header: "maxQty", key: "maxQty" },
+            { header: "lotNo", key: "lotNo" }
           ],
         },
       ],
@@ -375,12 +418,40 @@ export default function Page() {
         </Col>
       </Row>
       <Row className="mt-4">
-        <Datatable<AssemblyItem>
-          columns={columns}
-          rowData={filteredItems}
-          pagination={true}
-          progressPending={isLoading}
-        />
+
+
+      <Tabs
+            id="primary-items-tabs"
+            activeKey={key}
+            onSelect={(k) => setKey(k || 0)}
+            className={"mb-3 custom-tabs"}
+            variant="tabs"
+          >
+            <Tab
+                eventKey={0}
+                title={`Lot No`}
+                key={0}
+              >
+               <Datatable<AssemblyItem>
+                  columns={columns}
+                  rowData={filteredItems}
+                  pagination={true}
+                  progressPending={isLoading}
+                />
+              </Tab>
+               <Tab
+                eventKey={1}
+                title={`Storage Type`}
+                key={1}
+              >
+                <Datatable<AssemblyItem>
+                  columns={columns}
+                  rowData={filteredItems}
+                  pagination={true}
+                  progressPending={isLoading}
+                />
+              </Tab>
+          </Tabs>
       </Row>
       <Col className="d-flex justify-content-end mt-4">
         <Button
