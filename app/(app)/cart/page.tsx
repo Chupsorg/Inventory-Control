@@ -634,7 +634,7 @@ export default function Page() {
       }
       try {
         const res = await callApi({
-          url: `StoreCtl/get-kitchen-assembly-items-list/${loginDetails?.cloudKitchenId}`,
+          url: `StoreCtl/get-kitchen-assembly-items-list/${loginDetails?.cloudKitchenId}/MEASUREMENT`,
         }).unwrap();
         if (res?.status) setitemList((res.object as any) || []);
       } catch (error) {
